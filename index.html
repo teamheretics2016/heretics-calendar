@@ -401,7 +401,13 @@ function teamSVG(name,color){
 
 // ── SPORT HELPERS ─────────────────────────────────────────────────────
 function sColor(s){return (SC[s]||{color:'#555'}).color;}
-function sStream(s){return (SC[s]||{stream:''}).stream;}
+function sStream(s,year){
+  if(s==='SL'){
+    if(year>=2026) return 'twitch.tv/les';
+    return 'twitch.tv/lvpes';
+  }
+  return (SC[s]||{stream:''}).stream;
+}
 function cLogo(s,y,comp){
   const cl=(comp||'').toLowerCase();
   if(s==='SL'){
@@ -480,7 +486,7 @@ function makeCard(e){
   const inf=parseCard(e);
   const dow=getDayName(e.year,e.month_num,e.day);const dateStr=e.day?(dow?`${dow} ${e.day} ${MES[e.month_num]}`:`${e.day} ${MES[e.month_num]}`):MES[e.month_num];
   const timeStr=e.time?`, ${e.time} h`:'';
-  const stream=sStream(e.sport);
+  const stream=sStream(e.sport,e.year);
   const past=isPast(e);
   const key=matchKey(e);
   const res=past?getResult(key):'none';
