@@ -1082,7 +1082,7 @@ function goToToday() {
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
   import {
-    getFirestore, doc, setDoc, updateDoc, onSnapshot, FieldPath
+    getFirestore, doc, setDoc, onSnapshot
   } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -1099,14 +1099,13 @@ function goToToday() {
   const db = getFirestore(app);
   const resultsRef = doc(db, "calendar", "results");
 
-  // Make sure the document exists without ever wiping existing data
-  // (merge:true on an empty "data" map is a no-op if it already has content).
-  setDoc(resultsRef, { data: {} }, { merge: true }).catch((err) => {
-    console.error("No se pudo inicializar el documento de resultados:", err);
-  });
-
   // Live sync: fires once with the current data, then again every time
-  // anyone (this tab included) changes a result anywhere.
+  // anyone (this tab included) changes a result anywhere. No "ensure the
+  // document exists" call here on purpose: setDoc(..., {merge:true}) below
+  // already creates the document on first write if it's missing, and doing
+  // a separate empty-object merge on every page load previously WIPED all
+  // existing results (Firestore's merge treats an empty nested map as "the
+  // whole field has no content", replacing it instead of leaving it alone).
   onSnapshot(resultsRef, (snap) => {
     const data = snap.data();
     if (typeof window.__thApplyRemoteResults === 'function') {
@@ -1116,11 +1115,13 @@ function goToToday() {
     console.error("Error de sincronización con la nube (resultados):", err);
   });
 
-  // Called by cycleResult() in the classic script above. Uses FieldPath
-  // (not a dotted string) so opponent slugs containing a literal "."
-  // (e.g. "virtus.pro") are treated as one literal key, not a nested path.
+  // Called by cycleResult() in the classic script above. Merges just this
+  // one key under "data" (setDoc + merge:true, NOT updateDoc with a dotted
+  // field-path string) so opponent slugs containing a literal "." (e.g.
+  // "virtus.pro") are stored as one literal key, not split into a nested
+  // path, and so every other result already saved is left untouched.
   window.__thWriteResult = function (key, value) {
-    updateDoc(resultsRef, new FieldPath('data', key), value).catch((err) => {
+    setDoc(resultsRef, { data: { [key]: value } }, { merge: true }).catch((err) => {
       console.error("No se pudo guardar el resultado en la nube:", err);
     });
   };
