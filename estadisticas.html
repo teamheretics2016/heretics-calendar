@@ -279,6 +279,14 @@
   .stint-chip.role-player{ color: var(--gold-bright); background: var(--gold-dim); }
   .stint-chip.role-coach{ color: var(--coach-bright); background: var(--coach-dim); }
   .stint-chip.ended{ opacity:.6; }
+  .total-summary{
+    font-size: 11.5px; font-weight:600; color: var(--text-dim);
+    background: var(--bg-alt);
+    border: 1px dashed var(--card-border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    margin-top: 2px;
+  }
   .btn-become-coach{
     margin-top: 6px;
     align-self:flex-start;
@@ -811,6 +819,41 @@
       const cls = "stint-chip role-" + (s.role === "coach" ? "coach" : "player") + (s.left ? " ended" : "");
       return `<div class="${cls}">${roleIcon(s.role)} <strong>${escapeHtml(roleLabel(s.role))}</strong> · ${tenureText(s.joined, s.left)}</div>`;
     }).join("");
+  }
+
+  // Suma los días de todas las etapas (huecos entre etapas, si volvió más
+  // tarde, no cuentan) para dar el total real de tiempo en el club, sea como
+  // jugador, entrenador o ambos combinados.
+  function addDays(date, days){
+    const d = new Date(date.getTime());
+    d.setDate(d.getDate() + days);
+    return d;
+  }
+  function totalDaysInHeretics(stints){
+    if (!stints || !stints.length) return 0;
+    let total = 0;
+    stints.forEach((s) => {
+      if (!s.joined) return;
+      const start = parseISO(s.joined);
+      const end = s.left && s.left !== "TBD" ? parseISO(s.left) : new Date();
+      const days = Math.round((end - start) / 86400000);
+      if (days > 0) total += days;
+    });
+    return total;
+  }
+  function totalTenureText(stints){
+    const totalDays = totalDaysInHeretics(stints);
+    if (totalDays <= 0) return null;
+    // Se descompone el total de días en años/meses/días usando una fecha
+    // base neutra, para que el desglose sea coherente con el resto de la
+    // página (misma lógica de diffYMD) en vez de una media aproximada.
+    const base = new Date(2000, 0, 1);
+    const { y, m, d } = diffYMD(base, addDays(base, totalDays));
+    const parts = [];
+    if (y > 0) parts.push(`${y} ${plural(y,"año","años")}`);
+    if (m > 0) parts.push(`${m} ${plural(m,"mes","meses")}`);
+    if (d > 0 || parts.length === 0) parts.push(`${d} ${plural(d,"día","días")}`);
+    return `${parts.join(", ")} (${totalDays} ${plural(totalDays,"día","días")} en total)`;
   }
   function ageText(birthISO){
     if (!birthISO) return "";
@@ -1567,6 +1610,7 @@
       <div class="info-row" style="border-bottom:none; flex-direction:column; align-items:flex-start; gap:4px;">
         <span class="label">En Heretics</span>
         <div class="stint-list">${stintsSummaryHtml(p.stints)}</div>
+        ${p.stints.length > 1 ? `<div class="total-summary">📊 Total en el club: ${totalTenureText(p.stints)} · ${(p.playerStats.matches || 0) + (p.coachStats.matches || 0)} partidos en total</div>` : ``}
         ${category === "player-ex" ? `<button class="btn-become-coach" type="button">🧑‍🏫 Ahora es entrenador</button>` : ``}
       </div>
 
