@@ -24,6 +24,10 @@
     --loss: #ff5c6c;
     --ex-red: #d94550;
     --ex-red-dim: rgba(217,69,80,.15);
+    --coach: #6f9bd9;
+    --coach-bright: #a8c6ee;
+    --coach-deep: #3f5f8f;
+    --coach-dim: rgba(111,155,217,.15);
     --radius: 16px;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -169,7 +173,23 @@
   .card.is-ex::before{
     background: linear-gradient(90deg, #7a2229, var(--ex-red), transparent);
   }
-  .card.is-ex .avatar{ filter: grayscale(55%); opacity:.9; }
+  /* Entrenador en activo: acento azul, para distinguirlo de jugadores */
+  .card.is-coach{
+    border-color: rgba(111,155,217,.4);
+    box-shadow: 0 4px 22px rgba(111,155,217,.08);
+  }
+  .card.is-coach::before{
+    background: linear-gradient(90deg, var(--coach-deep), var(--coach), transparent);
+  }
+  /* Ex-entrenador: mismo acento azul pero ficha "apagada" */
+  .card.is-coach-ex{
+    border-color: rgba(111,155,217,.3);
+    background: linear-gradient(180deg, rgba(111,155,217,.06), var(--card) 60px);
+  }
+  .card.is-coach-ex::before{
+    background: linear-gradient(90deg, #223751, var(--coach), transparent);
+  }
+  .card.is-ex .avatar, .card.is-coach-ex .avatar{ filter: grayscale(55%); opacity:.9; }
   .card-head{ display:flex; gap:14px; align-items:center; margin-bottom: 16px; }
   .avatar{
     width:64px; height:64px; border-radius: 50%;
@@ -203,7 +223,7 @@
   .avatar:hover .avatar-overlay{ opacity:1; }
   .avatar .initials-text{ position:relative; z-index:0; }
   .avatar.has-photo .initials-text{ display:none; }
-  .nickname{ font-size:19px; font-weight:800; display:flex; align-items:center; gap:7px; }
+  .nickname{ font-size:19px; font-weight:800; display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
   .fullname{ font-size:12.5px; color: var(--text-dim); margin-top:2px; }
   .ex-badge{
     font-size: 10px; font-weight:800; letter-spacing:.5px;
@@ -218,6 +238,18 @@
     background: var(--gold);
     border: 1px solid var(--gold);
     padding: 1px 7px; border-radius: 999px;
+  }
+  .coach-badge{
+    font-size: 10px; font-weight:800; letter-spacing:.5px;
+    color: #0d1420;
+    background: var(--coach);
+    border: 1px solid var(--coach);
+    padding: 1px 7px; border-radius: 999px;
+  }
+  .coach-badge.is-ex-badge{
+    color: var(--coach-bright);
+    background: transparent;
+    border-color: var(--coach);
   }
 
   .card-edit-btn{
@@ -237,15 +269,37 @@
   }
   .info-row .label{ color: var(--text-faint); }
   .info-row .value{ color: var(--text); font-weight:600; text-align:right; }
-  .tenure-badge{
-    display:inline-block; margin-top:2px;
-    font-size: 11.5px; color: var(--gold-bright);
-    background: var(--gold-dim);
-    padding: 2px 8px; border-radius: 999px;
+  .stint-list{ display:flex; flex-direction:column; gap:5px; width:100%; }
+  .stint-chip{
+    display:inline-flex; align-items:center; gap:5px;
+    width: fit-content; max-width:100%;
+    font-size: 11.5px; font-weight:600;
+    padding: 3px 9px; border-radius: 999px;
   }
-  .card.is-ex .tenure-badge{ color: #f5b5ba; background: var(--ex-red-dim); }
+  .stint-chip.role-player{ color: var(--gold-bright); background: var(--gold-dim); }
+  .stint-chip.role-coach{ color: var(--coach-bright); background: var(--coach-dim); }
+  .stint-chip.ended{ opacity:.6; }
+  .btn-become-coach{
+    margin-top: 6px;
+    align-self:flex-start;
+    font-size: 11px; font-weight:700;
+    background: transparent;
+    border: 1px dashed var(--coach-deep);
+    color: var(--coach-bright);
+    padding: 4px 10px; border-radius: 999px;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .btn-become-coach:hover{ background: var(--coach-dim); border-color: var(--coach); }
 
   .stats-block{ margin-top: 14px; display:flex; flex-direction:column; gap:10px; }
+  .stats-subtitle{
+    font-size: 10.5px; font-weight:800; letter-spacing:.5px; text-transform:uppercase;
+    color: var(--text-faint);
+    margin-top: 4px;
+  }
+  .stats-subtitle:first-child{ margin-top:0; }
+  .stats-subtitle.coach{ color: var(--coach-bright); }
   .stat{
     display:flex; align-items:center; justify-content:space-between;
     background: var(--bg-alt);
@@ -263,7 +317,17 @@
   }
   .stat-controls button:not(:disabled):hover{ background: var(--gold); border-color: var(--gold); color:#17150e; }
   .stat-controls button:disabled{ opacity:.3; cursor:not-allowed; }
-  .stat-controls .num{ min-width:26px; text-align:center; font-weight:800; font-size:14px; }
+  .stat-controls .num{ min-width:26px; text-align:center; font-weight:800; font-size:14px; cursor:pointer; border-radius:5px; padding:2px 4px; transition:background .12s ease; }
+  .stat-controls .num:hover{ background: var(--gold-dim); }
+  .stat-controls .num-input{
+    width:52px; text-align:center; font-weight:800; font-size:14px; font-family:inherit;
+    background: var(--bg-alt); border:1px solid var(--gold-deep); border-radius:5px;
+    color: var(--text); padding:2px 4px; color-scheme: dark;
+  }
+  .stat-controls .num-input.win{ color: var(--win); }
+  .stat-controls .num-input.loss{ color: var(--loss); }
+  .stat-controls .num-input::-webkit-outer-spin-button,
+  .stat-controls .num-input::-webkit-inner-spin-button{ opacity:1; }
 
   .wl-row{ display:flex; gap:10px; }
   .wl-row .stat{ flex:1; }
@@ -428,6 +492,51 @@
     flex: 0 0 auto;
   }
   .form-actions .btn-delete:hover{ background: var(--ex-red-dim); border-color: var(--ex-red); }
+
+  .stint-row{
+    background: var(--bg-alt);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .stint-row-top{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+  .stint-role{
+    flex:1;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 8px 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color-scheme: dark;
+  }
+  .stint-remove{
+    width:28px; height:28px; border-radius:8px; flex-shrink:0;
+    border: 1px solid var(--card-border);
+    background: transparent; color: var(--ex-red);
+    cursor:pointer; font-size:13px;
+    transition: all .15s ease;
+  }
+  .stint-remove:hover{ background: var(--ex-red-dim); border-color: var(--ex-red); }
+  .stint-remove:disabled{ opacity:.3; cursor:not-allowed; }
+  .btn-add-stint{
+    width:100%; margin-top:2px; padding:9px;
+    border-radius:10px;
+    border: 1px dashed var(--card-border);
+    background: transparent;
+    color: var(--text-faint);
+    font-weight:700; font-size:12.5px; cursor:pointer;
+    transition: all .15s ease;
+  }
+  .btn-add-stint:hover{ border-color: var(--gold-deep); color: var(--gold); background: var(--gold-dim); }
+  .stats-group-label{
+    display:block; font-size:11.5px; font-weight:700;
+    color: var(--text-dim); margin: 16px 0 8px;
+    text-transform: uppercase; letter-spacing:.4px;
+  }
+  .stats-group-label:first-of-type{ margin-top:0; }
 </style>
 </head>
 <body>
@@ -474,26 +583,18 @@
       <label for="fFullname">Nombre completo</label>
       <input type="text" id="fFullname" placeholder="Ej. Benjy David Fish">
     </div>
-    <div class="form-row2">
-      <div class="form-field">
-        <label for="fBirth">Fecha de nacimiento</label>
-        <input type="date" id="fBirth">
-      </div>
-      <div class="form-field">
-        <label for="fJoined">En Heretics desde</label>
-        <input type="date" id="fJoined">
-      </div>
+    <div class="form-field">
+      <label for="fBirth">Fecha de nacimiento</label>
+      <input type="date" id="fBirth">
     </div>
 
-    <div class="form-checkbox-row">
-      <input type="checkbox" id="fHasLeft">
-      <label for="fHasLeft" style="margin:0;">Ya no está en el equipo (ex-jugador)</label>
-    </div>
-    <div class="form-field" id="fLeftWrap" style="display:none;">
-      <label for="fLeft">Fecha de salida (déjalo en blanco si aún no la sabes)</label>
-      <input type="date" id="fLeft">
+    <div class="form-field">
+      <label>Etapas en Heretics (puede haber varias, por ejemplo si volvió al equipo o pasó de jugador a entrenador)</label>
+      <div id="stintsEditor"></div>
+      <button type="button" class="btn-add-stint" id="addStintBtn">+ Añadir etapa</button>
     </div>
 
+    <label class="stats-group-label">🎮 Estadísticas como jugador</label>
     <div class="form-row2">
       <div class="form-field">
         <label for="fMatches">Partidos jugados</label>
@@ -512,6 +613,28 @@
       <div class="form-field">
         <label for="fLosses">Derrotas</label>
         <input type="number" id="fLosses" min="0" value="0">
+      </div>
+    </div>
+
+    <label class="stats-group-label">🧑‍🏫 Estadísticas como entrenador</label>
+    <div class="form-row2">
+      <div class="form-field">
+        <label for="fCMatches">Partidos jugados</label>
+        <input type="number" id="fCMatches" min="0" value="0">
+      </div>
+      <div class="form-field">
+        <label for="fCMaps">Mapas jugados</label>
+        <input type="number" id="fCMaps" min="0" value="0">
+      </div>
+    </div>
+    <div class="form-row2">
+      <div class="form-field">
+        <label for="fCWins">Victorias</label>
+        <input type="number" id="fCWins" min="0" value="0">
+      </div>
+      <div class="form-field">
+        <label for="fCLosses">Derrotas</label>
+        <input type="number" id="fCLosses" min="0" value="0">
       </div>
     </div>
 
@@ -634,15 +757,39 @@
     return { y, m, d };
   }
   function plural(n, sing, plur){ return n === 1 ? sing : plur; }
-  function isActive(p){ return !p.left; }
+
+  // Un jugador puede tener varias etapas en Heretics (p.ej. volvió al equipo,
+  // o pasó de jugador a entrenador). "stints" es la lista de esas etapas,
+  // ordenada cronológicamente; la última es la etapa actual/más reciente.
+  function lastStint(p){
+    return (p.stints && p.stints.length) ? p.stints[p.stints.length - 1] : null;
+  }
+  function isCurrentlyActive(p){
+    const s = lastStint(p);
+    return !!s && !s.left;
+  }
+  function currentRole(p){
+    const s = lastStint(p);
+    return s && s.role === "coach" ? "coach" : "player";
+  }
+  // Categoría de la ficha: de qué color se pinta y qué insignia lleva.
+  function cardCategory(p){
+    const active = isCurrentlyActive(p);
+    const role = currentRole(p);
+    if (role === "coach") return active ? "coach-active" : "coach-ex";
+    return active ? "player-active" : "player-ex";
+  }
+  function roleLabel(role){ return role === "coach" ? "Entrenador" : "Jugador"; }
+  function roleIcon(role){ return role === "coach" ? "🧑‍🏫" : "🎮"; }
+
   function tenureText(joinedISO, leftVal){
     if (!joinedISO){
-      return leftVal ? "Ex-jugador · fecha de entrada pendiente" : "Fecha de entrada pendiente de añadir";
+      return leftVal ? "Etapa finalizada · fecha de entrada pendiente" : "Fecha de entrada pendiente de añadir";
     }
     const start = parseISO(joinedISO);
     const joined = fmtDMY(start);
     if (leftVal === "TBD"){
-      return `Desde ${joined} · Ex-jugador (fecha de salida pendiente)`;
+      return `Desde ${joined} · fecha de salida pendiente`;
     }
     const end = leftVal ? parseISO(leftVal) : new Date();
     const { y, m, d } = diffYMD(start, end);
@@ -654,6 +801,16 @@
       return `${joined} – ${fmtDMY(end)} · ${parts.join(", ")} en total`;
     }
     return `Desde ${joined} · ${parts.join(", ")}`;
+  }
+  // Lista visual de todas las etapas de un jugador (una ficha, varias etapas).
+  function stintsSummaryHtml(stints){
+    if (!stints || !stints.length){
+      return `<span style="color:var(--text-faint); font-weight:400; font-size:12px;">Fecha de entrada pendiente de añadir</span>`;
+    }
+    return stints.map((s) => {
+      const cls = "stint-chip role-" + (s.role === "coach" ? "coach" : "player") + (s.left ? " ended" : "");
+      return `<div class="${cls}">${roleIcon(s.role)} <strong>${escapeHtml(roleLabel(s.role))}</strong> · ${tenureText(s.joined, s.left)}</div>`;
+    }).join("");
   }
   function ageText(birthISO){
     if (!birthISO) return "";
@@ -890,18 +1047,52 @@
       const data = change.doc.data() || {};
       const prev = playersById.get(id);
       if (prev && prev.gameId !== data.gameId) affected.add(prev.gameId);
+
+      // Compatibilidad con fichas antiguas (guardadas antes de que existieran
+      // varias etapas / estadísticas separadas de entrenador): si el
+      // documento no tiene "stints" todavía, se reconstruye una única etapa
+      // de jugador a partir de los campos planos joined/left de siempre.
+      let stints;
+      if (Array.isArray(data.stints) && data.stints.length){
+        stints = data.stints.map((s) => ({
+          role: s && s.role === "coach" ? "coach" : "player",
+          joined: (s && s.joined) || null,
+          left: (s && s.left) || null
+        }));
+      } else {
+        stints = [{ role: "player", joined: data.joined || null, left: data.left || null }];
+      }
+      const playerStats = (data.playerStats && typeof data.playerStats === "object")
+        ? {
+            matches: data.playerStats.matches || 0,
+            maps: data.playerStats.maps || 0,
+            wins: data.playerStats.wins || 0,
+            losses: data.playerStats.losses || 0
+          }
+        : {
+            matches: data.matches || 0,
+            maps: data.maps || 0,
+            wins: data.wins || 0,
+            losses: data.losses || 0
+          };
+      const coachStats = (data.coachStats && typeof data.coachStats === "object")
+        ? {
+            matches: data.coachStats.matches || 0,
+            maps: data.coachStats.maps || 0,
+            wins: data.coachStats.wins || 0,
+            losses: data.coachStats.losses || 0
+          }
+        : { matches: 0, maps: 0, wins: 0, losses: 0 };
+
       playersById.set(id, {
         id,
         gameId: data.gameId,
         nickname: data.nickname || "",
         fullname: data.fullname || "",
         birth: data.birth || null,
-        joined: data.joined || null,
-        left: data.left || null,
-        matches: data.matches || 0,
-        maps: data.maps || 0,
-        wins: data.wins || 0,
-        losses: data.losses || 0,
+        stints,
+        playerStats,
+        coachStats,
         titles: Array.isArray(data.titles) ? data.titles : [],
         photoDataUrl: data.photoDataUrl || null,
         createdAt: data.createdAt || 0
@@ -914,8 +1105,8 @@
   function sortedPlayers(gameId){
     const arr = [...playersById.values()].filter((p) => p.gameId === gameId);
     return arr.sort((a, b) => {
-      const aRank = isActive(a) ? 0 : 1;
-      const bRank = isActive(b) ? 0 : 1;
+      const aRank = isCurrentlyActive(a) ? 0 : 1;
+      const bRank = isCurrentlyActive(b) ? 0 : 1;
       if (aRank !== bRank) return aRank - bRank;
       return (a.createdAt || 0) - (b.createdAt || 0);
     });
@@ -944,17 +1135,114 @@
   const fNickname = document.getElementById("fNickname");
   const fFullname = document.getElementById("fFullname");
   const fBirth = document.getElementById("fBirth");
-  const fJoined = document.getElementById("fJoined");
-  const fHasLeft = document.getElementById("fHasLeft");
-  const fLeftWrap = document.getElementById("fLeftWrap");
-  const fLeft = document.getElementById("fLeft");
   const fMatches = document.getElementById("fMatches");
   const fMaps = document.getElementById("fMaps");
   const fWins = document.getElementById("fWins");
   const fLosses = document.getElementById("fLosses");
+  const fCMatches = document.getElementById("fCMatches");
+  const fCMaps = document.getElementById("fCMaps");
+  const fCWins = document.getElementById("fCWins");
+  const fCLosses = document.getElementById("fCLosses");
   const fTitles = document.getElementById("fTitles");
   const formDeleteEl = document.getElementById("formDelete");
   const formSaveBtn = document.getElementById("formSave");
+
+  // ---------- Editor de etapas (una ficha puede tener varias: p.ej. volvió
+  // al equipo, o pasó de jugador a entrenador) ----------
+  const stintsEditorEl = document.getElementById("stintsEditor");
+  const addStintBtn = document.getElementById("addStintBtn");
+
+  function clearStintRows(){ stintsEditorEl.innerHTML = ""; }
+
+  function addStintRow(stint){
+    const row = document.createElement("div");
+    row.className = "stint-row";
+    row.innerHTML = `
+      <div class="stint-row-top">
+        <select class="stint-role">
+          <option value="player">Jugador</option>
+          <option value="coach">Entrenador</option>
+        </select>
+        <button type="button" class="stint-remove" title="Eliminar esta etapa">🗑</button>
+      </div>
+      <div class="form-row2">
+        <div class="form-field" style="margin-bottom:8px;">
+          <label>Desde</label>
+          <input type="date" class="stint-joined">
+        </div>
+        <div class="form-field" style="margin-bottom:8px;">
+          <label>Hasta</label>
+          <input type="date" class="stint-left" disabled>
+        </div>
+      </div>
+      <div class="form-checkbox-row" style="margin-bottom:0;">
+        <input type="checkbox" class="stint-ended">
+        <label style="margin:0;">Esta etapa ha terminado</label>
+      </div>
+    `;
+    const roleSel = row.querySelector(".stint-role");
+    const joinedInput = row.querySelector(".stint-joined");
+    const leftInput = row.querySelector(".stint-left");
+    const endedChk = row.querySelector(".stint-ended");
+    const removeBtn = row.querySelector(".stint-remove");
+
+    roleSel.value = stint && stint.role === "coach" ? "coach" : "player";
+    joinedInput.value = stint && stint.joined ? stint.joined : "";
+    const ended = !!(stint && stint.left);
+    endedChk.checked = ended;
+    leftInput.disabled = !ended;
+    leftInput.value = stint && stint.left && stint.left !== "TBD" ? stint.left : "";
+
+    endedChk.addEventListener("change", () => {
+      leftInput.disabled = !endedChk.checked;
+      if (!endedChk.checked) leftInput.value = "";
+    });
+    removeBtn.addEventListener("click", () => {
+      if (stintsEditorEl.children.length <= 1){
+        alert("Debe quedar al menos una etapa en Heretics.");
+        return;
+      }
+      row.remove();
+    });
+
+    stintsEditorEl.appendChild(row);
+  }
+
+  addStintBtn.addEventListener("click", () => {
+    addStintRow({ role: "player", joined: "", left: null });
+  });
+
+  // Lee las filas del editor y devuelve { stints } o { error }.
+  function collectStintsOrError(){
+    const rows = [...stintsEditorEl.querySelectorAll(".stint-row")];
+    const collected = [];
+    for (const row of rows){
+      const role = row.querySelector(".stint-role").value === "coach" ? "coach" : "player";
+      const joined = row.querySelector(".stint-joined").value;
+      if (!joined){
+        return { error: "Cada etapa necesita una fecha de inicio (\"Desde\")." };
+      }
+      const ended = row.querySelector(".stint-ended").checked;
+      let left = null;
+      if (ended){
+        const leftVal = row.querySelector(".stint-left").value;
+        left = leftVal || "TBD";
+      }
+      collected.push({ role, joined, left });
+    }
+    if (!collected.length){
+      return { error: "Añade al menos una etapa en Heretics." };
+    }
+    collected.sort((a, b) => (a.joined < b.joined ? -1 : a.joined > b.joined ? 1 : 0));
+    const ongoingCount = collected.filter((s) => !s.left).length;
+    if (ongoingCount > 1){
+      return { error: "Solo puede haber una etapa sin fecha de fin (la más reciente). Marca como terminadas las etapas anteriores." };
+    }
+    if (ongoingCount === 1 && collected[collected.length - 1].left){
+      return { error: "La etapa sin fecha de fin debe ser la más reciente en el tiempo." };
+    }
+    return { stints: collected };
+  }
 
   function openPlayerForm(mode, gameId, player){
     formState.mode = mode;
@@ -967,17 +1255,23 @@
     fNickname.value = player ? player.nickname : "";
     fFullname.value = player ? player.fullname || "" : "";
     fBirth.value = player && player.birth ? player.birth : "";
-    fJoined.value = player && player.joined ? player.joined : "";
 
-    const hasLeft = !!(player && player.left);
-    fHasLeft.checked = hasLeft;
-    fLeftWrap.style.display = hasLeft ? "block" : "none";
-    fLeft.value = player && player.left && player.left !== "TBD" ? player.left : "";
+    clearStintRows();
+    const stints = (player && player.stints && player.stints.length) ? player.stints : [{ role: "player", joined: "", left: null }];
+    stints.forEach((s) => addStintRow(s));
 
-    fMatches.value = player ? (player.matches || 0) : 0;
-    fMaps.value = player ? (player.maps || 0) : 0;
-    fWins.value = player ? (player.wins || 0) : 0;
-    fLosses.value = player ? (player.losses || 0) : 0;
+    const ps = player ? player.playerStats || {} : {};
+    fMatches.value = ps.matches || 0;
+    fMaps.value = ps.maps || 0;
+    fWins.value = ps.wins || 0;
+    fLosses.value = ps.losses || 0;
+
+    const cs = player ? player.coachStats || {} : {};
+    fCMatches.value = cs.matches || 0;
+    fCMaps.value = cs.maps || 0;
+    fCWins.value = cs.wins || 0;
+    fCLosses.value = cs.losses || 0;
+
     fTitles.value = player ? (player.titles || []).join(", ") : "";
 
     formOverlayEl.classList.add("open");
@@ -986,10 +1280,6 @@
   function closePlayerForm(){
     formOverlayEl.classList.remove("open");
   }
-
-  fHasLeft.addEventListener("change", () => {
-    fLeftWrap.style.display = fHasLeft.checked ? "block" : "none";
-  });
 
   document.getElementById("formCancel").addEventListener("click", closePlayerForm);
 
@@ -1016,32 +1306,46 @@
       fNickname.focus();
       return;
     }
-    const matches = Math.max(0, parseInt(fMatches.value, 10) || 0);
-    const maps = Math.max(0, parseInt(fMaps.value, 10) || 0);
-    const wins = Math.max(0, parseInt(fWins.value, 10) || 0);
-    const losses = Math.max(0, parseInt(fLosses.value, 10) || 0);
 
-    if (wins + losses > matches){
-      alert("Victorias + Derrotas no puede superar los Partidos jugados. Revisa los números.");
+    const stintsResult = collectStintsOrError();
+    if (stintsResult.error){
+      alert(stintsResult.error);
       return;
     }
+
+    const playerStats = {
+      matches: Math.max(0, parseInt(fMatches.value, 10) || 0),
+      maps: Math.max(0, parseInt(fMaps.value, 10) || 0),
+      wins: Math.max(0, parseInt(fWins.value, 10) || 0),
+      losses: Math.max(0, parseInt(fLosses.value, 10) || 0)
+    };
+    if (playerStats.wins + playerStats.losses > playerStats.matches){
+      alert("En las estadísticas de jugador, Victorias + Derrotas no puede superar los Partidos jugados.");
+      return;
+    }
+    const coachStats = {
+      matches: Math.max(0, parseInt(fCMatches.value, 10) || 0),
+      maps: Math.max(0, parseInt(fCMaps.value, 10) || 0),
+      wins: Math.max(0, parseInt(fCWins.value, 10) || 0),
+      losses: Math.max(0, parseInt(fCLosses.value, 10) || 0)
+    };
+    if (coachStats.wins + coachStats.losses > coachStats.matches){
+      alert("En las estadísticas de entrenador, Victorias + Derrotas no puede superar los Partidos jugados.");
+      return;
+    }
+
     if (!dbApi){
       alert("No hay conexión con la nube ahora mismo; no se puede guardar.");
       return;
     }
 
-    let left = null;
-    if (fHasLeft.checked){
-      left = fLeft.value ? fLeft.value : "TBD";
-    }
     const titles = fTitles.value.split(",").map((t) => t.trim()).filter(Boolean);
     const data = {
       nickname,
       fullname: fFullname.value.trim(),
       birth: fBirth.value || null,
-      joined: fJoined.value || null,
-      left,
-      matches, maps, wins, losses,
+      stints: stintsResult.stints,
+      playerStats, coachStats,
       titles
     };
 
@@ -1182,9 +1486,61 @@
   });
 
   // ---------- Tarjeta de jugador ----------
+  function statBlockHtml(target, stats){
+    return `
+        <div class="stat" data-target="${target}" data-stat="matches">
+          <span class="stat-label">Partidos jugados</span>
+          <div class="stat-controls">
+            <button data-action="dec">−</button>
+            <span class="num" title="Haz clic para escribir el número directamente">${stats.matches || 0}</span>
+            <button data-action="inc">+</button>
+          </div>
+        </div>
+        <div class="stat" data-target="${target}" data-stat="maps">
+          <span class="stat-label">Mapas jugados</span>
+          <div class="stat-controls">
+            <button data-action="dec">−</button>
+            <span class="num" title="Haz clic para escribir el número directamente">${stats.maps || 0}</span>
+            <button data-action="inc">+</button>
+          </div>
+        </div>
+        <div class="wl-row">
+          <div class="stat" data-target="${target}" data-stat="wins">
+            <span class="stat-label">Victorias</span>
+            <div class="stat-controls">
+              <button data-action="dec">−</button>
+              <span class="num win" title="Haz clic para escribir el número directamente">${stats.wins || 0}</span>
+              <button data-action="inc">+</button>
+            </div>
+          </div>
+          <div class="stat" data-target="${target}" data-stat="losses">
+            <span class="stat-label">Derrotas</span>
+            <div class="stat-controls">
+              <button data-action="dec">−</button>
+              <span class="num loss" title="Haz clic para escribir el número directamente">${stats.losses || 0}</span>
+              <button data-action="inc">+</button>
+            </div>
+          </div>
+        </div>`;
+  }
+
   function renderCard(p, gameId){
     const card = document.createElement("div");
-    card.className = "card " + (isActive(p) ? "is-active" : "is-ex");
+    const category = cardCategory(p);
+    const classMap = {
+      "player-active": "is-active",
+      "player-ex": "is-ex",
+      "coach-active": "is-coach",
+      "coach-ex": "is-coach-ex"
+    };
+    const badgeMap = {
+      "player-active": `<span class="active-badge">ACTIVO</span>`,
+      "player-ex": `<span class="ex-badge">EX</span>`,
+      "coach-active": `<span class="coach-badge">ENTRENADOR</span>`,
+      "coach-ex": `<span class="coach-badge is-ex-badge">EX-ENTRENADOR</span>`
+    };
+    card.className = "card " + classMap[category];
+    const hasCoachStint = p.stints.some((s) => s.role === "coach");
 
     const birthValue = p.birth
       ? `${fmtDMY(parseISO(p.birth))} <span style="color:var(--text-faint); font-weight:400;">(${ageText(p.birth)})</span>`
@@ -1199,7 +1555,7 @@
           <input type="file" accept="image/*" aria-label="Subir foto de ${escapeHtml(p.nickname)}">
         </div>
         <div>
-          <div class="nickname">${escapeHtml(p.nickname)} ${isActive(p) ? `<span class="active-badge">ACTIVO</span>` : `<span class="ex-badge">EX</span>`}</div>
+          <div class="nickname">${escapeHtml(p.nickname)} ${badgeMap[category]}</div>
           <div class="fullname">${escapeHtml(p.fullname) || "Nombre completo pendiente"}</div>
         </div>
       </div>
@@ -1210,44 +1566,14 @@
       </div>
       <div class="info-row" style="border-bottom:none; flex-direction:column; align-items:flex-start; gap:4px;">
         <span class="label">En Heretics</span>
-        <span class="tenure-badge">${tenureText(p.joined, p.left)}</span>
+        <div class="stint-list">${stintsSummaryHtml(p.stints)}</div>
+        ${category === "player-ex" ? `<button class="btn-become-coach" type="button">🧑‍🏫 Ahora es entrenador</button>` : ``}
       </div>
 
       <div class="stats-block">
-        <div class="stat" data-stat="matches">
-          <span class="stat-label">Partidos jugados</span>
-          <div class="stat-controls">
-            <button data-action="dec">−</button>
-            <span class="num">${p.matches}</span>
-            <button data-action="inc">+</button>
-          </div>
-        </div>
-        <div class="stat" data-stat="maps">
-          <span class="stat-label">Mapas jugados</span>
-          <div class="stat-controls">
-            <button data-action="dec">−</button>
-            <span class="num">${p.maps}</span>
-            <button data-action="inc">+</button>
-          </div>
-        </div>
-        <div class="wl-row">
-          <div class="stat" data-stat="wins">
-            <span class="stat-label">Victorias</span>
-            <div class="stat-controls">
-              <button data-action="dec">−</button>
-              <span class="num win">${p.wins}</span>
-              <button data-action="inc">+</button>
-            </div>
-          </div>
-          <div class="stat" data-stat="losses">
-            <span class="stat-label">Derrotas</span>
-            <div class="stat-controls">
-              <button data-action="dec">−</button>
-              <span class="num loss">${p.losses}</span>
-              <button data-action="inc">+</button>
-            </div>
-          </div>
-        </div>
+        ${hasCoachStint ? `<div class="stats-subtitle">🎮 Como jugador</div>` : ``}
+        ${statBlockHtml("playerStats", p.playerStats)}
+        ${hasCoachStint ? `<div class="stats-subtitle coach">🧑‍🏫 Como entrenador</div>${statBlockHtml("coachStats", p.coachStats)}` : ``}
       </div>
 
       <div class="tournaments">
@@ -1261,6 +1587,23 @@
     card.querySelector(".card-edit-btn").addEventListener("click", () => {
       openPlayerForm("edit", gameId, p);
     });
+
+    const becomeCoachBtn = card.querySelector(".btn-become-coach");
+    if (becomeCoachBtn){
+      becomeCoachBtn.addEventListener("click", () => {
+        if (!dbApi) return;
+        const ok = confirm(`¿Marcar a ${p.nickname} como entrenador a partir de hoy?\n\nSe añadirá una nueva etapa como entrenador con sus propias estadísticas (empezando de 0) y el contador de tiempo en el equipo también empezará de 0 para esta etapa. Podrás ajustar la fecha exacta después desde ✏️ Editar.`);
+        if (!ok) return;
+        const todayISO = new Date().toISOString().slice(0, 10);
+        const newStints = [...(p.stints || []), { role: "coach", joined: todayISO, left: null }];
+        becomeCoachBtn.disabled = true;
+        dbApi.doc(`players/${p.id}`).update({ stints: newStints }).catch((err) => {
+          console.error(err);
+          alert("No se pudo actualizar: " + (err && err.message ? err.message : "error desconocido"));
+          becomeCoachBtn.disabled = false;
+        });
+      });
+    }
 
     // Foto de perfil: se guarda como imagen comprimida directamente en la
     // ficha del jugador en Firestore (sin usar Firebase Storage), visible
@@ -1302,44 +1645,128 @@
 
     // Coherencia Partidos = Victorias + Derrotas: no se puede sumar una V/D
     // hasta que los partidos jugados sean mayores que la suma actual, y no se
-    // puede bajar Partidos por debajo de esa suma.
-    const winsIncBtn = card.querySelector('[data-stat="wins"] [data-action="inc"]');
-    const lossesIncBtn = card.querySelector('[data-stat="losses"] [data-action="inc"]');
-    const matchesDecBtn = card.querySelector('[data-stat="matches"] [data-action="dec"]');
+    // puede bajar Partidos por debajo de esa suma. Se aplica por separado a
+    // las estadísticas de jugador y a las de entrenador (son contadores
+    // independientes dentro de la misma ficha).
+    function statsFor(target){ return target === "coachStats" ? p.coachStats : p.playerStats; }
 
-    function refreshLocks(){
-      const sumWL = (p.wins || 0) + (p.losses || 0);
-      const locked = sumWL >= (p.matches || 0);
-      winsIncBtn.disabled = locked;
-      lossesIncBtn.disabled = locked;
-      matchesDecBtn.disabled = (p.matches || 0) <= sumWL;
+    function refreshLocksFor(target){
+      const stats = statsFor(target);
+      const winsIncBtn = card.querySelector(`[data-target="${target}"][data-stat="wins"] [data-action="inc"]`);
+      const lossesIncBtn = card.querySelector(`[data-target="${target}"][data-stat="losses"] [data-action="inc"]`);
+      const matchesDecBtn = card.querySelector(`[data-target="${target}"][data-stat="matches"] [data-action="dec"]`);
+      const sumWL = (stats.wins || 0) + (stats.losses || 0);
+      const locked = sumWL >= (stats.matches || 0);
+      if (winsIncBtn) winsIncBtn.disabled = locked;
+      if (lossesIncBtn) lossesIncBtn.disabled = locked;
+      if (matchesDecBtn) matchesDecBtn.disabled = (stats.matches || 0) <= sumWL;
+    }
+
+    // Misma regla de coherencia que los botones +/-, pero reutilizable desde
+    // la edición manual del número: "maps" no tiene restricción; "matches"
+    // no puede bajar de victorias+derrotas; "wins"/"losses" no pueden hacer
+    // que la suma supere los partidos jugados.
+    function validateStatChange(target, key, newVal){
+      const stats = statsFor(target);
+      if (key === "maps") return { ok: true };
+      if (key === "matches"){
+        const sumWL = (stats.wins || 0) + (stats.losses || 0);
+        if (newVal < sumWL){
+          return { ok: false, message: `Los partidos jugados no pueden ser menos que victorias + derrotas (${sumWL}).` };
+        }
+        return { ok: true };
+      }
+      // key === "wins" || key === "losses"
+      const other = key === "wins" ? (stats.losses || 0) : (stats.wins || 0);
+      if (newVal + other > (stats.matches || 0)){
+        return { ok: false, message: `Victorias + derrotas no puede superar los partidos jugados (${stats.matches || 0}).` };
+      }
+      return { ok: true };
+    }
+
+    function saveStat(target, key, newVal, onDone){
+      if (!dbApi) { if (onDone) onDone(); return; }
+      dbApi.doc(`players/${p.id}`).update({ [`${target}.${key}`]: newVal }).catch((err) => {
+        console.error(err);
+        alert("No se pudo guardar el cambio: " + (err && err.message ? err.message : "error desconocido"));
+      }).finally(() => { if (onDone) onDone(); });
     }
 
     card.querySelectorAll(".stat").forEach((statEl) => {
+      const target = statEl.dataset.target;
       const key = statEl.dataset.stat;
       const incBtn = statEl.querySelector('[data-action="inc"]');
       const decBtn = statEl.querySelector('[data-action="dec"]');
+      const numEl = statEl.querySelector(".num");
       incBtn.addEventListener("click", () => {
         if (!dbApi) return;
         incBtn.disabled = true; decBtn.disabled = true;
-        const newVal = (p[key] || 0) + 1;
-        dbApi.doc(`players/${p.id}`).update({ [key]: newVal }).catch((err) => {
-          console.error(err);
-          alert("No se pudo guardar el cambio: " + (err && err.message ? err.message : "error desconocido"));
-        });
+        saveStat(target, key, (statsFor(target)[key] || 0) + 1);
       });
       decBtn.addEventListener("click", () => {
         if (!dbApi) return;
         incBtn.disabled = true; decBtn.disabled = true;
-        const newVal = Math.max(0, (p[key] || 0) - 1);
-        dbApi.doc(`players/${p.id}`).update({ [key]: newVal }).catch((err) => {
-          console.error(err);
-          alert("No se pudo guardar el cambio: " + (err && err.message ? err.message : "error desconocido"));
+        saveStat(target, key, Math.max(0, (statsFor(target)[key] || 0) - 1));
+      });
+
+      // Edición manual: clic en el número → campo editable, para no tener
+      // que darle al + cientos de veces en stats grandes (ej. 800 mapas).
+      numEl.addEventListener("click", () => {
+        if (!dbApi || statEl.querySelector(".num-input")) return;
+        const current = statsFor(target)[key] || 0;
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "0";
+        input.step = "1";
+        input.inputMode = "numeric";
+        input.className = "num-input" + (numEl.classList.contains("win") ? " win" : numEl.classList.contains("loss") ? " loss" : "");
+        input.value = current;
+        numEl.replaceWith(input);
+        input.focus();
+        input.select();
+
+        let settled = false;
+        function commit(){
+          if (settled) return;
+          settled = true;
+          const raw = input.value.trim();
+          const parsed = raw === "" ? current : Math.max(0, Math.round(Number(raw)));
+          if (!Number.isFinite(parsed)){
+            input.replaceWith(numEl);
+            return;
+          }
+          if (parsed === current){
+            input.replaceWith(numEl);
+            return;
+          }
+          const check = validateStatChange(target, key, parsed);
+          if (!check.ok){
+            alert(check.message);
+            input.replaceWith(numEl);
+            return;
+          }
+          input.disabled = true;
+          saveStat(target, key, parsed, () => {
+            // El snapshot en tiempo real re-renderiza la tarjeta enseguida;
+            // esto es solo para que no se quede el input huérfano si tarda.
+            if (input.isConnected) input.replaceWith(numEl);
+          });
+        }
+        function cancel(){
+          if (settled) return;
+          settled = true;
+          input.replaceWith(numEl);
+        }
+        input.addEventListener("blur", commit);
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+          else if (e.key === "Escape") { e.preventDefault(); cancel(); }
         });
       });
     });
 
-    refreshLocks();
+    refreshLocksFor("playerStats");
+    if (hasCoachStint) refreshLocksFor("coachStats");
 
     return card;
   }
