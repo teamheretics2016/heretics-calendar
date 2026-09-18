@@ -28,6 +28,10 @@
     --coach-bright: #a8c6ee;
     --coach-deep: #3f5f8f;
     --coach-dim: rgba(111,155,217,.15);
+    --founder: #a97cdb;
+    --founder-bright: #cbaaec;
+    --founder-deep: #6a4a8f;
+    --founder-dim: rgba(169,124,219,.15);
     --radius: 16px;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -189,7 +193,22 @@
   .card.is-coach-ex::before{
     background: linear-gradient(90deg, #223751, var(--coach), transparent);
   }
-  .card.is-ex .avatar, .card.is-coach-ex .avatar{ filter: grayscale(55%); opacity:.9; }
+  /* Creador en activo: acento morado, para distinguirlo de jugador/entrenador */
+  .card.is-founder{
+    border-color: rgba(169,124,219,.4);
+    box-shadow: 0 4px 22px rgba(169,124,219,.08);
+  }
+  .card.is-founder::before{
+    background: linear-gradient(90deg, var(--founder-deep), var(--founder), transparent);
+  }
+  .card.is-founder-ex{
+    border-color: rgba(169,124,219,.3);
+    background: linear-gradient(180deg, rgba(169,124,219,.06), var(--card) 60px);
+  }
+  .card.is-founder-ex::before{
+    background: linear-gradient(90deg, #3c2952, var(--founder), transparent);
+  }
+  .card.is-ex .avatar, .card.is-coach-ex .avatar, .card.is-founder-ex .avatar{ filter: grayscale(55%); opacity:.9; }
   .card-head{ display:flex; gap:14px; align-items:center; margin-bottom: 16px; }
   .avatar{
     width:64px; height:64px; border-radius: 50%;
@@ -251,6 +270,18 @@
     background: transparent;
     border-color: var(--coach);
   }
+  .founder-badge{
+    font-size: 10px; font-weight:800; letter-spacing:.5px;
+    color: #17102a;
+    background: var(--founder);
+    border: 1px solid var(--founder);
+    padding: 1px 7px; border-radius: 999px;
+  }
+  .founder-badge.is-ex-badge{
+    color: var(--founder-bright);
+    background: transparent;
+    border-color: var(--founder);
+  }
 
   .card-edit-btn{
     position:absolute; top:14px; right:14px;
@@ -278,6 +309,7 @@
   }
   .stint-chip.role-player{ color: var(--gold-bright); background: var(--gold-dim); }
   .stint-chip.role-coach{ color: var(--coach-bright); background: var(--coach-dim); }
+  .stint-chip.role-founder{ color: var(--founder-bright); background: var(--founder-dim); }
   .stint-chip.ended{ opacity:.6; }
   .total-summary{
     font-size: 11.5px; font-weight:600; color: var(--text-dim);
@@ -336,6 +368,13 @@
   .stat-controls .num-input.loss{ color: var(--loss); }
   .stat-controls .num-input::-webkit-outer-spin-button,
   .stat-controls .num-input::-webkit-inner-spin-button{ opacity:1; }
+
+  /* Estadística de solo lectura (p.ej. los totales combinados): es la suma
+     de otros contadores, así que no lleva botones ni se puede clicar. */
+  .stat.readonly{ border-style: dashed; }
+  .stat.readonly .stat-controls{ padding-right: 4px; }
+  .stat.readonly .num{ cursor: default; }
+  .stat.readonly .num:hover{ background: none; }
 
   .wl-row{ display:flex; gap:10px; }
   .wl-row .stat{ flex:1; }
@@ -627,11 +666,11 @@
     <label class="stats-group-label">🧑‍🏫 Estadísticas como entrenador</label>
     <div class="form-row2">
       <div class="form-field">
-        <label for="fCMatches">Partidos jugados</label>
+        <label for="fCMatches">Partidos entrenados</label>
         <input type="number" id="fCMatches" min="0" value="0">
       </div>
       <div class="form-field">
-        <label for="fCMaps">Mapas jugados</label>
+        <label for="fCMaps">Mapas entrenados</label>
         <input type="number" id="fCMaps" min="0" value="0">
       </div>
     </div>
@@ -776,19 +815,29 @@
     const s = lastStint(p);
     return !!s && !s.left;
   }
+  function normalizeRole(role){
+    return role === "coach" ? "coach" : role === "founder" ? "founder" : "player";
+  }
   function currentRole(p){
     const s = lastStint(p);
-    return s && s.role === "coach" ? "coach" : "player";
+    return s ? normalizeRole(s.role) : "player";
   }
   // Categoría de la ficha: de qué color se pinta y qué insignia lleva.
   function cardCategory(p){
     const active = isCurrentlyActive(p);
     const role = currentRole(p);
-    if (role === "coach") return active ? "coach-active" : "coach-ex";
-    return active ? "player-active" : "player-ex";
+    return `${role}-${active ? "active" : "ex"}`;
   }
-  function roleLabel(role){ return role === "coach" ? "Entrenador" : "Jugador"; }
-  function roleIcon(role){ return role === "coach" ? "🧑‍🏫" : "🎮"; }
+  function roleLabel(role){
+    if (role === "coach") return "Entrenador";
+    if (role === "founder") return "Creador";
+    return "Jugador";
+  }
+  function roleIcon(role){
+    if (role === "coach") return "🧑‍🏫";
+    if (role === "founder") return "👑";
+    return "🎮";
+  }
 
   function tenureText(joinedISO, leftVal){
     if (!joinedISO){
@@ -816,8 +865,9 @@
       return `<span style="color:var(--text-faint); font-weight:400; font-size:12px;">Fecha de entrada pendiente de añadir</span>`;
     }
     return stints.map((s) => {
-      const cls = "stint-chip role-" + (s.role === "coach" ? "coach" : "player") + (s.left ? " ended" : "");
-      return `<div class="${cls}">${roleIcon(s.role)} <strong>${escapeHtml(roleLabel(s.role))}</strong> · ${tenureText(s.joined, s.left)}</div>`;
+      const role = normalizeRole(s.role);
+      const cls = "stint-chip role-" + role + (s.left ? " ended" : "");
+      return `<div class="${cls}">${roleIcon(role)} <strong>${escapeHtml(roleLabel(role))}</strong> · ${tenureText(s.joined, s.left)}</div>`;
     }).join("");
   }
 
@@ -1098,7 +1148,7 @@
       let stints;
       if (Array.isArray(data.stints) && data.stints.length){
         stints = data.stints.map((s) => ({
-          role: s && s.role === "coach" ? "coach" : "player",
+          role: normalizeRole(s && s.role),
           joined: (s && s.joined) || null,
           left: (s && s.left) || null
         }));
@@ -1205,6 +1255,7 @@
         <select class="stint-role">
           <option value="player">Jugador</option>
           <option value="coach">Entrenador</option>
+          <option value="founder">Creador</option>
         </select>
         <button type="button" class="stint-remove" title="Eliminar esta etapa">🗑</button>
       </div>
@@ -1229,7 +1280,7 @@
     const endedChk = row.querySelector(".stint-ended");
     const removeBtn = row.querySelector(".stint-remove");
 
-    roleSel.value = stint && stint.role === "coach" ? "coach" : "player";
+    roleSel.value = stint ? normalizeRole(stint.role) : "player";
     joinedInput.value = stint && stint.joined ? stint.joined : "";
     const ended = !!(stint && stint.left);
     endedChk.checked = ended;
@@ -1260,7 +1311,7 @@
     const rows = [...stintsEditorEl.querySelectorAll(".stint-row")];
     const collected = [];
     for (const row of rows){
-      const role = row.querySelector(".stint-role").value === "coach" ? "coach" : "player";
+      const role = normalizeRole(row.querySelector(".stint-role").value);
       const joined = row.querySelector(".stint-joined").value;
       if (!joined){
         return { error: "Cada etapa necesita una fecha de inicio (\"Desde\")." };
@@ -1530,9 +1581,11 @@
 
   // ---------- Tarjeta de jugador ----------
   function statBlockHtml(target, stats){
+    const matchesLabel = target === "coachStats" ? "Partidos entrenados" : "Partidos jugados";
+    const mapsLabel = target === "coachStats" ? "Mapas entrenados" : "Mapas jugados";
     return `
         <div class="stat" data-target="${target}" data-stat="matches">
-          <span class="stat-label">Partidos jugados</span>
+          <span class="stat-label">${matchesLabel}</span>
           <div class="stat-controls">
             <button data-action="dec">−</button>
             <span class="num" title="Haz clic para escribir el número directamente">${stats.matches || 0}</span>
@@ -1540,7 +1593,7 @@
           </div>
         </div>
         <div class="stat" data-target="${target}" data-stat="maps">
-          <span class="stat-label">Mapas jugados</span>
+          <span class="stat-label">${mapsLabel}</span>
           <div class="stat-controls">
             <button data-action="dec">−</button>
             <span class="num" title="Haz clic para escribir el número directamente">${stats.maps || 0}</span>
@@ -1567,6 +1620,39 @@
         </div>`;
   }
 
+  // Bloque de solo-lectura con los totales combinados (jugador + entrenador),
+  // para quien haya tenido etapas de ambos tipos. No es un contador propio:
+  // es la suma de las estadísticas de jugador y de entrenador, así que no
+  // lleva botones +/- ni edición manual.
+  function combinedTotalsHtml(playerStats, coachStats){
+    const matches = (playerStats.matches || 0) + (coachStats.matches || 0);
+    const maps = (playerStats.maps || 0) + (coachStats.maps || 0);
+    const wins = (playerStats.wins || 0) + (coachStats.wins || 0);
+    const losses = (playerStats.losses || 0) + (coachStats.losses || 0);
+    return `
+      <div class="stats-block">
+        <div class="stats-subtitle">📊 Totales combinados (jugador + entrenador)</div>
+        <div class="stat readonly">
+          <span class="stat-label">Partidos totales</span>
+          <div class="stat-controls"><span class="num">${matches}</span></div>
+        </div>
+        <div class="stat readonly">
+          <span class="stat-label">Mapas totales</span>
+          <div class="stat-controls"><span class="num">${maps}</span></div>
+        </div>
+        <div class="wl-row">
+          <div class="stat readonly">
+            <span class="stat-label">Victorias totales</span>
+            <div class="stat-controls"><span class="num win">${wins}</span></div>
+          </div>
+          <div class="stat readonly">
+            <span class="stat-label">Derrotas totales</span>
+            <div class="stat-controls"><span class="num loss">${losses}</span></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
   function renderCard(p, gameId){
     const card = document.createElement("div");
     const category = cardCategory(p);
@@ -1574,16 +1660,22 @@
       "player-active": "is-active",
       "player-ex": "is-ex",
       "coach-active": "is-coach",
-      "coach-ex": "is-coach-ex"
+      "coach-ex": "is-coach-ex",
+      "founder-active": "is-founder",
+      "founder-ex": "is-founder-ex"
     };
     const badgeMap = {
       "player-active": `<span class="active-badge">ACTIVO</span>`,
       "player-ex": `<span class="ex-badge">EX</span>`,
       "coach-active": `<span class="coach-badge">ENTRENADOR</span>`,
-      "coach-ex": `<span class="coach-badge is-ex-badge">EX-ENTRENADOR</span>`
+      "coach-ex": `<span class="coach-badge is-ex-badge">EX-ENTRENADOR</span>`,
+      "founder-active": `<span class="founder-badge">CREADOR</span>`,
+      "founder-ex": `<span class="founder-badge is-ex-badge">EX-CREADOR</span>`
     };
     card.className = "card " + classMap[category];
+    const hasPlayerStint = p.stints.some((s) => s.role === "player");
     const hasCoachStint = p.stints.some((s) => s.role === "coach");
+    const showSubtitles = hasPlayerStint && hasCoachStint;
 
     const birthValue = p.birth
       ? `${fmtDMY(parseISO(p.birth))} <span style="color:var(--text-faint); font-weight:400;">(${ageText(p.birth)})</span>`
@@ -1614,11 +1706,11 @@
         ${category === "player-ex" ? `<button class="btn-become-coach" type="button">🧑‍🏫 Ahora es entrenador</button>` : ``}
       </div>
 
+      ${(hasPlayerStint || hasCoachStint) ? `
       <div class="stats-block">
-        ${hasCoachStint ? `<div class="stats-subtitle">🎮 Como jugador</div>` : ``}
-        ${statBlockHtml("playerStats", p.playerStats)}
-        ${hasCoachStint ? `<div class="stats-subtitle coach">🧑‍🏫 Como entrenador</div>${statBlockHtml("coachStats", p.coachStats)}` : ``}
-      </div>
+        ${hasPlayerStint ? `${showSubtitles ? `<div class="stats-subtitle">🎮 Como jugador</div>` : ``}${statBlockHtml("playerStats", p.playerStats)}` : ``}
+        ${hasCoachStint ? `${showSubtitles ? `<div class="stats-subtitle coach">🧑‍🏫 Como entrenador</div>` : ``}${statBlockHtml("coachStats", p.coachStats)}` : ``}
+      </div>` : ``}
 
       <div class="tournaments">
         <div class="label">Torneos ganados</div>
@@ -1626,6 +1718,8 @@
           ${p.titles.length ? p.titles.map((t) => `<span class="tag">🏆 ${escapeHtml(t)}</span>`).join("") : `<span style="color:var(--text-faint); font-size:12px;">Ninguno todavía</span>`}
         </div>
       </div>
+
+      ${(hasPlayerStint && hasCoachStint) ? combinedTotalsHtml(p.playerStats, p.coachStats) : ``}
     `;
 
     card.querySelector(".card-edit-btn").addEventListener("click", () => {
@@ -1736,7 +1830,7 @@
       }).finally(() => { if (onDone) onDone(); });
     }
 
-    card.querySelectorAll(".stat").forEach((statEl) => {
+    card.querySelectorAll(".stat:not(.readonly)").forEach((statEl) => {
       const target = statEl.dataset.target;
       const key = statEl.dataset.stat;
       const incBtn = statEl.querySelector('[data-action="inc"]');
@@ -1809,7 +1903,7 @@
       });
     });
 
-    refreshLocksFor("playerStats");
+    if (hasPlayerStint) refreshLocksFor("playerStats");
     if (hasCoachStint) refreshLocksFor("coachStats");
 
     return card;
