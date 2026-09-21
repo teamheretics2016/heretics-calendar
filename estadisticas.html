@@ -22,6 +22,7 @@
     --text-faint: #726f65;
     --win: #38d67a;
     --loss: #ff5c6c;
+    --draw: #e0b84a;
     --ex-red: #d94550;
     --ex-red-dim: rgba(217,69,80,.15);
     --coach: #6f9bd9;
@@ -139,10 +140,21 @@
   @keyframes fade{ from{opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
 
   .game-title{
-    display:flex; align-items:center; gap:10px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
     font-size: 20px; font-weight: 800; margin-bottom: 18px;
   }
+  .game-title-text{ display:flex; align-items:center; gap:10px; }
   .game-title .dot{ width:8px; height:8px; border-radius:50%; background: var(--gold); }
+  .btn-delete-game{
+    flex-shrink:0;
+    width:30px; height:30px; border-radius:8px;
+    background: transparent; border:1px solid var(--card-border);
+    color: var(--text-faint); font-size:14px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition: all .15s ease;
+  }
+  .btn-delete-game:hover{ background: var(--ex-red-dim); border-color: var(--ex-red); color: var(--ex-red); }
+  .btn-delete-game:disabled{ opacity:.4; cursor:not-allowed; }
 
   .grid{
     display:grid;
@@ -366,6 +378,7 @@
   }
   .stat-controls .num-input.win{ color: var(--win); }
   .stat-controls .num-input.loss{ color: var(--loss); }
+  .stat-controls .num-input.draw{ color: var(--draw); }
   .stat-controls .num-input::-webkit-outer-spin-button,
   .stat-controls .num-input::-webkit-inner-spin-button{ opacity:1; }
 
@@ -380,6 +393,7 @@
   .wl-row .stat{ flex:1; }
   .wl-row .num.win{ color: var(--win); }
   .wl-row .num.loss{ color: var(--loss); }
+  .wl-row .num.draw{ color: var(--draw); }
 
   .update-note{
     display:flex; align-items:center; gap:9px;
@@ -396,6 +410,14 @@
   }
   .update-note .note-input::placeholder{ color: var(--text-faint); font-style:italic; font-weight:400; }
   .update-note .note-input:focus{ text-decoration: underline; text-decoration-style: dotted; text-decoration-color: var(--gold); }
+  .draws-toggle{
+    display:flex; align-items:center; gap:7px;
+    font-size: 12.5px; color: var(--text-faint); font-weight:600;
+    margin: -6px 0 18px 2px;
+    cursor:pointer;
+  }
+  .draws-toggle input{ accent-color: var(--draw); width:15px; height:15px; cursor:pointer; }
+  .draws-toggle:hover{ color: var(--text-dim); }
 
   .tournaments{ margin-top: 14px; }
   .tournaments .label{ font-size:12px; color: var(--text-faint); margin-bottom:6px; }
@@ -662,6 +684,10 @@
         <input type="number" id="fLosses" min="0" value="0">
       </div>
     </div>
+    <div class="form-field" id="fDrawsWrap" style="display:none;">
+      <label for="fDraws">Empates</label>
+      <input type="number" id="fDraws" min="0" value="0">
+    </div>
 
     <label class="stats-group-label">🧑‍🏫 Estadísticas como entrenador</label>
     <div class="form-row2">
@@ -684,6 +710,10 @@
         <input type="number" id="fCLosses" min="0" value="0">
       </div>
     </div>
+    <div class="form-field" id="fCDrawsWrap" style="display:none;">
+      <label for="fCDraws">Empates</label>
+      <input type="number" id="fCDraws" min="0" value="0">
+    </div>
 
     <div class="form-field">
       <label for="fTitles">Torneos ganados (separados por comas)</label>
@@ -705,6 +735,11 @@
     <div class="form-field">
       <label for="gNewGameName">Nombre del juego o división *</label>
       <input type="text" id="gNewGameName" placeholder="Ej. Fortnite">
+    </div>
+
+    <div class="form-checkbox-row">
+      <input type="checkbox" id="gAllowDraws">
+      <label for="gAllowDraws" style="margin:0;">Este juego permite empates (ej. Rainbow Six)</label>
     </div>
 
     <div class="form-actions">
@@ -973,7 +1008,10 @@
         id,
         name: data.name || id,
         order: typeof data.order === "number" ? data.order : 0,
-        updateNote: data.updateNote || ""
+        updateNote: data.updateNote || "",
+        // Solo algunos juegos (p.ej. Rainbow Six) permiten empates; el resto
+        // no muestra esa estadística en ninguna ficha.
+        allowDraws: !!data.allowDraws
       };
       const prev = gamesById.get(id);
       gamesById.set(id, next);
@@ -984,6 +1022,11 @@
         if (noteInput && document.activeElement !== noteInput){
           noteInput.value = next.updateNote;
         }
+      }
+      if (prev.allowDraws !== next.allowDraws){
+        const toggleInput = document.querySelector(`#sec-${CSS.escape(id)} .draws-toggle-input`);
+        if (toggleInput) toggleInput.checked = next.allowDraws;
+        renderGameSection(id);
       }
     });
     if (structuralChange || firstGamesSnapshot) rebuildTabsAndSections();
@@ -1020,7 +1063,38 @@
 
     const title = document.createElement("div");
     title.className = "game-title";
-    title.innerHTML = `<span class="dot"></span> ${escapeHtml(game.name)}`;
+    const titleText = document.createElement("span");
+    titleText.className = "game-title-text";
+    titleText.innerHTML = `<span class="dot"></span> ${escapeHtml(game.name)}`;
+    title.appendChild(titleText);
+
+    // Borrar una sección (p.ej. si se creó dos veces por error). Por
+    // seguridad, solo se puede borrar si ya no tiene ninguna ficha dentro;
+    // si tiene jugadores/entrenadores, hay que vaciarla antes.
+    const deleteGameBtn = document.createElement("button");
+    deleteGameBtn.type = "button";
+    deleteGameBtn.className = "btn-delete-game";
+    deleteGameBtn.title = "Eliminar esta sección";
+    deleteGameBtn.textContent = "🗑";
+    deleteGameBtn.addEventListener("click", async () => {
+      if (!dbApi) return;
+      const playerCount = [...playersById.values()].filter((p) => p.gameId === game.id).length;
+      if (playerCount > 0){
+        alert(`No se puede eliminar "${game.name}" porque todavía tiene ${playerCount} ${playerCount === 1 ? "ficha" : "fichas"} dentro. Elimina esas fichas primero (✏️ Editar → 🗑️ Eliminar en cada una) y vuelve a intentarlo.`);
+        return;
+      }
+      const ok = confirm(`¿Eliminar la sección "${game.name}"? Esta acción no se puede deshacer.`);
+      if (!ok) return;
+      deleteGameBtn.disabled = true;
+      try {
+        await dbApi.doc(`games/${game.id}`).delete();
+      } catch (err) {
+        console.error(err);
+        alert("No se pudo eliminar la sección: " + (err && err.message ? err.message : "error desconocido"));
+        deleteGameBtn.disabled = false;
+      }
+    });
+    title.appendChild(deleteGameBtn);
     section.appendChild(title);
 
     // Anotación editable: "actualizado hasta..." — se guarda en la nube al salir del campo.
@@ -1043,6 +1117,24 @@
     noteWrap.appendChild(notePin);
     noteWrap.appendChild(noteInput);
     section.appendChild(noteWrap);
+
+    // Empates: solo algunos juegos los tienen (p.ej. Rainbow Six). Se activa
+    // por juego, así que no afecta a las fichas de las demás secciones.
+    const drawsLabel = document.createElement("label");
+    drawsLabel.className = "draws-toggle";
+    const drawsInput = document.createElement("input");
+    drawsInput.type = "checkbox";
+    drawsInput.className = "draws-toggle-input";
+    drawsInput.checked = !!game.allowDraws;
+    drawsInput.addEventListener("change", () => {
+      if (!dbApi) return;
+      dbApi.doc(`games/${game.id}`).update({ allowDraws: drawsInput.checked }).catch((err) => {
+        console.error("no se pudo guardar el ajuste de empates", err);
+      });
+    });
+    drawsLabel.appendChild(drawsInput);
+    drawsLabel.appendChild(document.createTextNode("🤝 Este juego permite empates (añade la estadística de empates a sus fichas)"));
+    section.appendChild(drawsLabel);
 
     const grid = document.createElement("div");
     grid.className = "grid";
@@ -1086,10 +1178,12 @@
   // ---------- Formulario de añadir juego ----------
   const gameFormOverlayEl = document.getElementById("gameFormOverlay");
   const gNewGameNameEl = document.getElementById("gNewGameName");
+  const gAllowDrawsEl = document.getElementById("gAllowDraws");
   const gameFormSaveBtn = document.getElementById("gameFormSave");
 
   function openGameForm(){
     gNewGameNameEl.value = "";
+    gAllowDrawsEl.checked = false;
     gameFormOverlayEl.classList.add("open");
     gNewGameNameEl.focus();
   }
@@ -1112,7 +1206,7 @@
     gameFormSaveBtn.disabled = true;
     try {
       const id = await uniqueGameId(slugify(name));
-      await dbApi.doc(`games/${id}`).set({ name, order: Date.now(), updateNote: "" });
+      await dbApi.doc(`games/${id}`).set({ name, order: Date.now(), updateNote: "", allowDraws: gAllowDrawsEl.checked });
       currentGameId = id;
       closeGameForm();
     } catch (err) {
@@ -1160,22 +1254,25 @@
             matches: data.playerStats.matches || 0,
             maps: data.playerStats.maps || 0,
             wins: data.playerStats.wins || 0,
-            losses: data.playerStats.losses || 0
+            losses: data.playerStats.losses || 0,
+            draws: data.playerStats.draws || 0
           }
         : {
             matches: data.matches || 0,
             maps: data.maps || 0,
             wins: data.wins || 0,
-            losses: data.losses || 0
+            losses: data.losses || 0,
+            draws: 0
           };
       const coachStats = (data.coachStats && typeof data.coachStats === "object")
         ? {
             matches: data.coachStats.matches || 0,
             maps: data.coachStats.maps || 0,
             wins: data.coachStats.wins || 0,
-            losses: data.coachStats.losses || 0
+            losses: data.coachStats.losses || 0,
+            draws: data.coachStats.draws || 0
           }
-        : { matches: 0, maps: 0, wins: 0, losses: 0 };
+        : { matches: 0, maps: 0, wins: 0, losses: 0, draws: 0 };
 
       playersById.set(id, {
         id,
@@ -1198,9 +1295,22 @@
   function sortedPlayers(gameId){
     const arr = [...playersById.values()].filter((p) => p.gameId === gameId);
     return arr.sort((a, b) => {
-      const aRank = isCurrentlyActive(a) ? 0 : 1;
-      const bRank = isCurrentlyActive(b) ? 0 : 1;
+      const aActive = isCurrentlyActive(a);
+      const bActive = isCurrentlyActive(b);
+      const aRank = aActive ? 0 : 1;
+      const bRank = bActive ? 0 : 1;
       if (aRank !== bRank) return aRank - bRank;
+      if (!aActive && !bActive){
+        // Quien ya no está en el equipo (jugador o entrenador) se ordena
+        // por su fecha de salida más reciente primero. Las fechas son
+        // "YYYY-MM-DD", así que comparan bien como texto.
+        const aLeft = lastStint(a) && lastStint(a).left;
+        const bLeft = lastStint(b) && lastStint(b).left;
+        const aHasDate = !!(aLeft && aLeft !== "TBD");
+        const bHasDate = !!(bLeft && bLeft !== "TBD");
+        if (aHasDate && bHasDate && aLeft !== bLeft) return aLeft < bLeft ? 1 : -1;
+        if (aHasDate !== bHasDate) return aHasDate ? -1 : 1;
+      }
       return (a.createdAt || 0) - (b.createdAt || 0);
     });
   }
@@ -1232,10 +1342,14 @@
   const fMaps = document.getElementById("fMaps");
   const fWins = document.getElementById("fWins");
   const fLosses = document.getElementById("fLosses");
+  const fDraws = document.getElementById("fDraws");
+  const fDrawsWrap = document.getElementById("fDrawsWrap");
   const fCMatches = document.getElementById("fCMatches");
   const fCMaps = document.getElementById("fCMaps");
   const fCWins = document.getElementById("fCWins");
   const fCLosses = document.getElementById("fCLosses");
+  const fCDraws = document.getElementById("fCDraws");
+  const fCDrawsWrap = document.getElementById("fCDrawsWrap");
   const fTitles = document.getElementById("fTitles");
   const formDeleteEl = document.getElementById("formDelete");
   const formSaveBtn = document.getElementById("formSave");
@@ -1359,12 +1473,21 @@
     fMaps.value = ps.maps || 0;
     fWins.value = ps.wins || 0;
     fLosses.value = ps.losses || 0;
+    fDraws.value = ps.draws || 0;
 
     const cs = player ? player.coachStats || {} : {};
     fCMatches.value = cs.matches || 0;
     fCMaps.value = cs.maps || 0;
     fCWins.value = cs.wins || 0;
     fCLosses.value = cs.losses || 0;
+    fCDraws.value = cs.draws || 0;
+
+    // El campo de empates solo se muestra para los juegos que los permiten
+    // (p.ej. Rainbow Six); en el resto se queda oculto y a 0.
+    const game = gamesById.get(gameId);
+    const allowDraws = !!(game && game.allowDraws);
+    fDrawsWrap.style.display = allowDraws ? "block" : "none";
+    fCDrawsWrap.style.display = allowDraws ? "block" : "none";
 
     fTitles.value = player ? (player.titles || []).join(", ") : "";
 
@@ -1411,20 +1534,22 @@
       matches: Math.max(0, parseInt(fMatches.value, 10) || 0),
       maps: Math.max(0, parseInt(fMaps.value, 10) || 0),
       wins: Math.max(0, parseInt(fWins.value, 10) || 0),
-      losses: Math.max(0, parseInt(fLosses.value, 10) || 0)
+      losses: Math.max(0, parseInt(fLosses.value, 10) || 0),
+      draws: Math.max(0, parseInt(fDraws.value, 10) || 0)
     };
-    if (playerStats.wins + playerStats.losses > playerStats.matches){
-      alert("En las estadísticas de jugador, Victorias + Derrotas no puede superar los Partidos jugados.");
+    if (playerStats.wins + playerStats.losses + playerStats.draws > playerStats.matches){
+      alert("En las estadísticas de jugador, Victorias + Derrotas + Empates no puede superar los Partidos jugados.");
       return;
     }
     const coachStats = {
       matches: Math.max(0, parseInt(fCMatches.value, 10) || 0),
       maps: Math.max(0, parseInt(fCMaps.value, 10) || 0),
       wins: Math.max(0, parseInt(fCWins.value, 10) || 0),
-      losses: Math.max(0, parseInt(fCLosses.value, 10) || 0)
+      losses: Math.max(0, parseInt(fCLosses.value, 10) || 0),
+      draws: Math.max(0, parseInt(fCDraws.value, 10) || 0)
     };
-    if (coachStats.wins + coachStats.losses > coachStats.matches){
-      alert("En las estadísticas de entrenador, Victorias + Derrotas no puede superar los Partidos jugados.");
+    if (coachStats.wins + coachStats.losses + coachStats.draws > coachStats.matches){
+      alert("En las estadísticas de entrenador, Victorias + Derrotas + Empates no puede superar los Partidos jugados.");
       return;
     }
 
@@ -1580,7 +1705,9 @@
   });
 
   // ---------- Tarjeta de jugador ----------
-  function statBlockHtml(target, stats){
+  // allowDraws: solo algunos juegos (p.ej. Rainbow Six) usan empates; para el
+  // resto no se muestra esa fila en absoluto.
+  function statBlockHtml(target, stats, allowDraws){
     const matchesLabel = target === "coachStats" ? "Partidos entrenados" : "Partidos jugados";
     const mapsLabel = target === "coachStats" ? "Mapas entrenados" : "Mapas jugados";
     return `
@@ -1617,18 +1744,28 @@
               <button data-action="inc">+</button>
             </div>
           </div>
-        </div>`;
+        </div>
+        ${allowDraws ? `
+        <div class="stat" data-target="${target}" data-stat="draws">
+          <span class="stat-label">Empates</span>
+          <div class="stat-controls">
+            <button data-action="dec">−</button>
+            <span class="num draw" title="Haz clic para escribir el número directamente">${stats.draws || 0}</span>
+            <button data-action="inc">+</button>
+          </div>
+        </div>` : ``}`;
   }
 
   // Bloque de solo-lectura con los totales combinados (jugador + entrenador),
   // para quien haya tenido etapas de ambos tipos. No es un contador propio:
   // es la suma de las estadísticas de jugador y de entrenador, así que no
   // lleva botones +/- ni edición manual.
-  function combinedTotalsHtml(playerStats, coachStats){
+  function combinedTotalsHtml(playerStats, coachStats, allowDraws){
     const matches = (playerStats.matches || 0) + (coachStats.matches || 0);
     const maps = (playerStats.maps || 0) + (coachStats.maps || 0);
     const wins = (playerStats.wins || 0) + (coachStats.wins || 0);
     const losses = (playerStats.losses || 0) + (coachStats.losses || 0);
+    const draws = (playerStats.draws || 0) + (coachStats.draws || 0);
     return `
       <div class="stats-block">
         <div class="stats-subtitle">📊 Totales combinados (jugador + entrenador)</div>
@@ -1650,6 +1787,11 @@
             <div class="stat-controls"><span class="num loss">${losses}</span></div>
           </div>
         </div>
+        ${allowDraws ? `
+        <div class="stat readonly">
+          <span class="stat-label">Empates totales</span>
+          <div class="stat-controls"><span class="num draw">${draws}</span></div>
+        </div>` : ``}
       </div>`;
   }
 
@@ -1676,6 +1818,8 @@
     const hasPlayerStint = p.stints.some((s) => s.role === "player");
     const hasCoachStint = p.stints.some((s) => s.role === "coach");
     const showSubtitles = hasPlayerStint && hasCoachStint;
+    const game = gamesById.get(gameId);
+    const allowDraws = !!(game && game.allowDraws);
 
     const birthValue = p.birth
       ? `${fmtDMY(parseISO(p.birth))} <span style="color:var(--text-faint); font-weight:400;">(${ageText(p.birth)})</span>`
@@ -1708,8 +1852,8 @@
 
       ${(hasPlayerStint || hasCoachStint) ? `
       <div class="stats-block">
-        ${hasPlayerStint ? `${showSubtitles ? `<div class="stats-subtitle">🎮 Como jugador</div>` : ``}${statBlockHtml("playerStats", p.playerStats)}` : ``}
-        ${hasCoachStint ? `${showSubtitles ? `<div class="stats-subtitle coach">🧑‍🏫 Como entrenador</div>` : ``}${statBlockHtml("coachStats", p.coachStats)}` : ``}
+        ${hasPlayerStint ? `${showSubtitles ? `<div class="stats-subtitle">🎮 Como jugador</div>` : ``}${statBlockHtml("playerStats", p.playerStats, allowDraws)}` : ``}
+        ${hasCoachStint ? `${showSubtitles ? `<div class="stats-subtitle coach">🧑‍🏫 Como entrenador</div>` : ``}${statBlockHtml("coachStats", p.coachStats, allowDraws)}` : ``}
       </div>` : ``}
 
       <div class="tournaments">
@@ -1719,7 +1863,7 @@
         </div>
       </div>
 
-      ${(hasPlayerStint && hasCoachStint) ? combinedTotalsHtml(p.playerStats, p.coachStats) : ``}
+      ${(hasPlayerStint && hasCoachStint) ? combinedTotalsHtml(p.playerStats, p.coachStats, allowDraws) : ``}
     `;
 
     card.querySelector(".card-edit-btn").addEventListener("click", () => {
@@ -1781,43 +1925,45 @@
       reader.readAsDataURL(file);
     });
 
-    // Coherencia Partidos = Victorias + Derrotas: no se puede sumar una V/D
-    // hasta que los partidos jugados sean mayores que la suma actual, y no se
-    // puede bajar Partidos por debajo de esa suma. Se aplica por separado a
-    // las estadísticas de jugador y a las de entrenador (son contadores
-    // independientes dentro de la misma ficha).
+    // Coherencia Partidos = Victorias + Derrotas (+ Empates, en los juegos
+    // que los tienen): no se puede sumar una hasta que los partidos jugados
+    // sean mayores que la suma actual, y no se puede bajar Partidos por
+    // debajo de esa suma. Se aplica por separado a las estadísticas de
+    // jugador y a las de entrenador (son contadores independientes dentro
+    // de la misma ficha).
     function statsFor(target){ return target === "coachStats" ? p.coachStats : p.playerStats; }
+    const WLD_KEYS = ["wins", "losses", "draws"];
 
     function refreshLocksFor(target){
       const stats = statsFor(target);
-      const winsIncBtn = card.querySelector(`[data-target="${target}"][data-stat="wins"] [data-action="inc"]`);
-      const lossesIncBtn = card.querySelector(`[data-target="${target}"][data-stat="losses"] [data-action="inc"]`);
       const matchesDecBtn = card.querySelector(`[data-target="${target}"][data-stat="matches"] [data-action="dec"]`);
-      const sumWL = (stats.wins || 0) + (stats.losses || 0);
-      const locked = sumWL >= (stats.matches || 0);
-      if (winsIncBtn) winsIncBtn.disabled = locked;
-      if (lossesIncBtn) lossesIncBtn.disabled = locked;
-      if (matchesDecBtn) matchesDecBtn.disabled = (stats.matches || 0) <= sumWL;
+      const sumWLD = WLD_KEYS.reduce((acc, k) => acc + (stats[k] || 0), 0);
+      const locked = sumWLD >= (stats.matches || 0);
+      WLD_KEYS.forEach((k) => {
+        const incBtn = card.querySelector(`[data-target="${target}"][data-stat="${k}"] [data-action="inc"]`);
+        if (incBtn) incBtn.disabled = locked;
+      });
+      if (matchesDecBtn) matchesDecBtn.disabled = (stats.matches || 0) <= sumWLD;
     }
 
     // Misma regla de coherencia que los botones +/-, pero reutilizable desde
     // la edición manual del número: "maps" no tiene restricción; "matches"
-    // no puede bajar de victorias+derrotas; "wins"/"losses" no pueden hacer
-    // que la suma supere los partidos jugados.
+    // no puede bajar de victorias+derrotas+empates; "wins"/"losses"/"draws"
+    // no pueden hacer que la suma supere los partidos jugados.
     function validateStatChange(target, key, newVal){
       const stats = statsFor(target);
       if (key === "maps") return { ok: true };
       if (key === "matches"){
-        const sumWL = (stats.wins || 0) + (stats.losses || 0);
-        if (newVal < sumWL){
-          return { ok: false, message: `Los partidos jugados no pueden ser menos que victorias + derrotas (${sumWL}).` };
+        const sumWLD = WLD_KEYS.reduce((acc, k) => acc + (stats[k] || 0), 0);
+        if (newVal < sumWLD){
+          return { ok: false, message: `Los partidos jugados no pueden ser menos que victorias + derrotas${stats.draws ? " + empates" : ""} (${sumWLD}).` };
         }
         return { ok: true };
       }
-      // key === "wins" || key === "losses"
-      const other = key === "wins" ? (stats.losses || 0) : (stats.wins || 0);
-      if (newVal + other > (stats.matches || 0)){
-        return { ok: false, message: `Victorias + derrotas no puede superar los partidos jugados (${stats.matches || 0}).` };
+      // key es "wins", "losses" o "draws"
+      const others = WLD_KEYS.filter((k) => k !== key).reduce((acc, k) => acc + (stats[k] || 0), 0);
+      if (newVal + others > (stats.matches || 0)){
+        return { ok: false, message: `Victorias + derrotas + empates no puede superar los partidos jugados (${stats.matches || 0}).` };
       }
       return { ok: true };
     }
@@ -1857,7 +2003,7 @@
         input.min = "0";
         input.step = "1";
         input.inputMode = "numeric";
-        input.className = "num-input" + (numEl.classList.contains("win") ? " win" : numEl.classList.contains("loss") ? " loss" : "");
+        input.className = "num-input" + (numEl.classList.contains("win") ? " win" : numEl.classList.contains("loss") ? " loss" : numEl.classList.contains("draw") ? " draw" : "");
         input.value = current;
         numEl.replaceWith(input);
         input.focus();
