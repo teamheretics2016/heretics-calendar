@@ -100,7 +100,7 @@ main{padding:24px 22px;max-width:1440px;margin:0 auto}
   outline:2px solid var(--red);
   outline-offset:2px;
 }
-#sticky-month{position:sticky;top:197px;z-index:96;pointer-events:none;
+#sticky-month{position:sticky;top:278px;z-index:95;pointer-events:none;
   font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:16px;
   letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.6);
   background:rgba(10,10,10,0.95);border-bottom:1px solid var(--border);
@@ -219,10 +219,16 @@ main{padding:24px 22px;max-width:1440px;margin:0 auto}
   color:#555;letter-spacing:.3px;
 }
 
-/* Forma reciente / racha actual */
+/* Forma reciente / racha actual.
+   Sticky (como .hdr/.srch/.mnav/.fbar) para que no quede oculta al hacer
+   scroll — antes vivía fuera del stack "pegajoso" de arriba, así que en
+   cuanto la página hacía scroll hacia abajo (por ejemplo al saltar
+   automáticamente al próximo partido, que puede estar meses más abajo)
+   esta barra desaparecía de la vista aunque sus datos siguieran ahí. */
 .form-bar{
   display:flex;align-items:center;gap:16px;flex-wrap:wrap;
   padding:10px 22px;border-bottom:1px solid var(--border);background:var(--dark);
+  position:sticky;top:237px;z-index:96;
 }
 .form-bar .streak{
   font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;
@@ -966,6 +972,31 @@ function pastResultsSorted(){
     (a.time||'00:00').localeCompare(b.time||'00:00')
   ).map(e=>({e, r:getResult(matchKey(e))}));
 }
+// La barra de racha es "sticky" (se queda fija bajo el resto de barras
+// pegajosas — cabecera, buscador, meses, filtros — en vez de desaparecer al
+// hacer scroll). Pero la altura de esas barras de arriba NO es fija: la de
+// filtros ("Juego: ...") puede ocupar 1, 2 o 3 líneas según el ancho de
+// pantalla (en móvil llega a ocupar el triple que en escritorio). Si la
+// posición "top" de la racha estuviera fijada por CSS con un número mágico,
+// en pantallas donde los filtros ocupan más líneas de lo previsto la racha
+// quedaría tapada/escondida detrás de ellos — justo el bug que se reportó
+// ("no aparece nada"). Por eso se recalcula aquí, con las alturas reales.
+function updateStickyOffsets(){
+  const hdr=document.querySelector('.hdr'), srch=document.querySelector('.srch'),
+        mnav=document.querySelector('.mnav'), fbar=document.querySelector('.fbar'),
+        formBar=document.getElementById('formBar'), sm=document.getElementById('sticky-month');
+  if(!hdr||!srch||!mnav||!fbar||!formBar) return null;
+  const stack=hdr.offsetHeight+srch.offsetHeight+mnav.offsetHeight+fbar.offsetHeight;
+  formBar.style.top=stack+'px';
+  const total=stack+formBar.offsetHeight;
+  if(sm) sm.style.top=total+'px';
+  return total;
+}
+window.addEventListener('resize', (function(){
+  let t=null;
+  return function(){ clearTimeout(t); t=setTimeout(updateStickyOffsets, 150); };
+})(), {passive:true});
+
 function buildFormBar(){
   const el=document.getElementById('formBar');
   if(!el) return;
@@ -977,6 +1008,7 @@ function buildFormBar(){
     // que se abre la web en un dispositivo). Mientras tanto mostramos un
     // aviso de carga en vez de dejar el hueco en blanco, que parecía roto.
     el.innerHTML=RESULTS_LOADED?'':'<span class="streak" style="opacity:.55">⏳ Cargando estadísticas de resultados…</span>';
+    updateStickyOffsets();
     return;
   }
   // Racha actual: partidos consecutivos con el mismo resultado, contando
@@ -1002,6 +1034,7 @@ function buildFormBar(){
     <span class="form-dots"><span class="form-dots-label">Forma reciente</span>${recent.map(({r})=>`<span class="form-dot ${r}">${r}</span>`).join('')}</span>
     <span class="streak">📊 Total (${filterLabel}): <strong class="w">${totalW}V</strong> - <strong class="l">${totalL}D</strong>${totalPct!==null?` · ${totalPct.toFixed(1)}%`:''}</span>
   `;
+  updateStickyOffsets();
 }
 function buildCards(){
   const ms=CM?[CM]:months(CY);
@@ -1166,6 +1199,7 @@ function render(){buildYr();buildMnav();buildFilters();buildFormBar();buildCards
 function initStickyMonth(){
   const sm=document.getElementById('sticky-month');
   if(!sm) return;
+  const offset=updateStickyOffsets()||278;
   const obs=new IntersectionObserver((entries)=>{
     entries.forEach(entry=>{
       if(entry.isIntersecting){
@@ -1175,7 +1209,7 @@ function initStickyMonth(){
         sm.style.display='block';
       }
     });
-  },{rootMargin:'-197px 0px -80% 0px',threshold:0});
+  },{rootMargin:`-${offset}px 0px -80% 0px`,threshold:0});
   document.querySelectorAll('section[data-month]').forEach(s=>obs.observe(s));
 }
 
