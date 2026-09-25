@@ -375,6 +375,11 @@ function isPast(e){
 
 // ── RESULTS (cloud-synced via Firestore; cached locally for instant paint) ──
 const LS_KEY='th_results_v2';
+// Se pone a true la primera vez que llega una respuesta real de Firestore
+// (aunque esa respuesta esté vacía). Sirve para que la barra de racha pueda
+// distinguir "todavía estoy cargando los resultados" de "ya cargué y
+// sencillamente no hay partidos marcados", y no parezca rota mientras carga.
+let RESULTS_LOADED=false;
 let RESULTS_CACHE=(function(){
   try{
     const raw=JSON.parse(localStorage.getItem(LS_KEY)||'{}');
@@ -514,12 +519,21 @@ function paintResult(key,newRes){
 // result on another device. Patches only the cards whose result changed.
 window.__thApplyRemoteResults=function(remote){
   const prev=RESULTS_CACHE;
+  const wasLoaded=RESULTS_LOADED;
   RESULTS_CACHE=remote||{};
+  RESULTS_LOADED=true;
   try{ localStorage.setItem(LS_KEY, JSON.stringify(RESULTS_CACHE)); }catch(e){}
   const keys=new Set([...Object.keys(prev),...Object.keys(RESULTS_CACHE)]);
+  let anyChanged=false;
   keys.forEach(k=>{
-    if((prev[k]||'none')!==(RESULTS_CACHE[k]||'none')) paintResult(k, RESULTS_CACHE[k]||'none');
+    if((prev[k]||'none')!==(RESULTS_CACHE[k]||'none')){ anyChanged=true; paintResult(k, RESULTS_CACHE[k]||'none'); }
   });
+  // Si nada cambió (p.ej. el caché local ya coincidía con Firestore, o es la
+  // primera respuesta y no había caché) el forEach de arriba no llama a
+  // paintResult ninguna vez, así que la racha se quedaría con el placeholder
+  // de "cargando" para siempre. Nos aseguramos de refrescarla igualmente en
+  // cuanto sabemos que ya llegó la primera respuesta real.
+  if(!anyChanged && !wasLoaded && typeof buildFormBar==='function') buildFormBar();
 };
 function cycleResult(key){
   const cur=RESULTS_CACHE[key]||'none';
@@ -956,7 +970,15 @@ function buildFormBar(){
   const el=document.getElementById('formBar');
   if(!el) return;
   const results=pastResultsSorted();
-  if(!results.length){ el.innerHTML=''; return; }
+  if(!results.length){
+    // Antes de que llegue la primera respuesta de Firestore no hay forma de
+    // saber si "no hay resultados" es real o si todavía estamos esperando
+    // los datos (esto puede tardar unos segundos, sobre todo la primera vez
+    // que se abre la web en un dispositivo). Mientras tanto mostramos un
+    // aviso de carga en vez de dejar el hueco en blanco, que parecía roto.
+    el.innerHTML=RESULTS_LOADED?'':'<span class="streak" style="opacity:.55">⏳ Cargando estadísticas de resultados…</span>';
+    return;
+  }
   // Racha actual: partidos consecutivos con el mismo resultado, contando
   // desde el más reciente hacia atrás.
   const last=results[results.length-1].r;
