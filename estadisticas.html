@@ -356,21 +356,6 @@
     color: var(--text-faint); font-size:13.5px;
   }
 
-  /* ---- Resumen de victorias/derrotas del juego ---- */
-  .game-summary{
-    display:flex; flex-wrap:wrap; gap:10px;
-    margin: -6px 0 18px;
-  }
-  .game-summary .gs-pill{
-    font-size:12px; font-weight:700;
-    background: var(--bg-alt); border:1px solid var(--card-border);
-    border-radius: 999px; padding: 5px 12px;
-    color: var(--text-dim);
-  }
-  .game-summary .gs-pill .win{ color: var(--win); }
-  .game-summary .gs-pill .loss{ color: var(--loss); }
-  .game-summary .gs-pill .draw{ color: var(--draw); }
-
   /* ---- Modales genéricos (ranking / comparador / récords) ---- */
   .form-box{ position: relative; }
   .form-box.wide{ max-width: 720px; }
@@ -1509,14 +1494,6 @@
     posLabel.appendChild(document.createTextNode("🧭 Este juego muestra la posición del jugador (Top/Jungla/Mid/ADC/Support)"));
     section.appendChild(posLabel);
 
-    // Contador de victorias/derrotas/empates totales de todo el juego (suma
-    // de todas las fichas de esta sección, jugador + entrenador). Se
-    // recalcula cada vez que se renderiza la sección.
-    const summary = document.createElement("div");
-    summary.className = "game-summary";
-    summary.id = `summary-${game.id}`;
-    section.appendChild(summary);
-
     const grid = document.createElement("div");
     grid.className = "grid";
     grid.id = `grid-${game.id}`;
@@ -1715,7 +1692,6 @@
     const grid = document.getElementById(`grid-${gameId}`);
     if (!grid) return;
     const all = sortedPlayers(gameId);
-    renderGameSummary(gameId, all);
     const visible = applyFilters(all);
     grid.innerHTML = "";
     if (!visible.length && all.length){
@@ -1724,26 +1700,6 @@
       visible.forEach((p) => grid.appendChild(renderCard(p, gameId)));
     }
     grid.appendChild(renderAddCard(gameId));
-  }
-
-  // Contador de victorias/derrotas/empates totales del juego (todas las
-  // fichas de la sección, sin aplicar los filtros de búsqueda: es el total
-  // real del club en ese juego).
-  function renderGameSummary(gameId, players){
-    const el = document.getElementById(`summary-${gameId}`);
-    if (!el) return;
-    const game = gamesById.get(gameId);
-    const totals = players.reduce((acc, p) => {
-      const s = combinedStats(p);
-      acc.matches += s.matches; acc.wins += s.wins; acc.losses += s.losses; acc.draws += s.draws;
-      return acc;
-    }, { matches: 0, wins: 0, losses: 0, draws: 0 });
-    const pct = winPct(totals.wins, totals.losses, totals.draws);
-    el.innerHTML = `
-      <span class="gs-pill">🎮 ${totals.matches} partido${totals.matches === 1 ? "" : "s"} en total</span>
-      <span class="gs-pill"><span class="win">${totals.wins}V</span> - <span class="loss">${totals.losses}D</span>${(game && game.allowDraws) ? ` - <span class="draw">${totals.draws}E</span>` : ``}</span>
-      <span class="gs-pill">📈 ${fmtPct(pct)} de victorias</span>
-    `;
   }
 
   function renderAddCard(gameId){
@@ -2603,11 +2559,10 @@
     const sa = combinedStats(pa), sb = combinedStats(pb);
     const pcta = winPct(sa.wins, sa.losses, sa.draws), pctb = winPct(sb.wins, sb.losses, sb.draws);
     const rows = [
-      // Partidos/Mapas jugados son datos de volumen, no de rendimiento: no
-      // se resalta ningún lado como "mejor". Derrotas es al revés que el
-      // resto (menos es mejor), así que se marca con lowerBetter.
-      { label: "Partidos totales", a: sa.matches, b: sb.matches, noHighlight: true },
-      { label: "Mapas totales", a: sa.maps, b: sb.maps, noHighlight: true },
+      // Derrotas es al revés que el resto (menos es mejor), así que se marca
+      // con lowerBetter en vez de con la comparación normal "más es mejor".
+      { label: "Partidos totales", a: sa.matches, b: sb.matches },
+      { label: "Mapas totales", a: sa.maps, b: sb.maps },
       { label: "Victorias totales", a: sa.wins, b: sb.wins },
       { label: "Derrotas totales", a: sa.losses, b: sb.losses, lowerBetter: true },
       { label: "% Victorias", a: pcta === null ? -1 : pcta, b: pctb === null ? -1 : pctb, fmt: (v) => fmtPct(v < 0 ? null : v) },
