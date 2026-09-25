@@ -306,6 +306,134 @@
     width: 13px; height: 13px; object-fit: contain; display:block;
   }
 
+  /* ---- Barra de filtros / búsqueda / acciones ---- */
+  .toolbar{
+    max-width: 1100px; margin: 0 auto; padding: 0 16px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .toolbar-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .tb-search{
+    flex:1; min-width:200px; display:flex; align-items:center; gap:8px;
+    background: var(--card); border:1px solid var(--card-border); border-radius:10px;
+    padding: 8px 12px;
+  }
+  .tb-search-ico{ font-size:14px; opacity:.6; }
+  .tb-search input{
+    flex:1; background:transparent; border:none; outline:none;
+    color: var(--text); font-size:13.5px; font-family:inherit;
+  }
+  .tb-search input::placeholder{ color: var(--text-faint); }
+  .tb-btn{
+    appearance:none; border:1px solid var(--card-border);
+    background: var(--card); color: var(--text-dim);
+    padding: 9px 14px; border-radius:10px;
+    font-size:12.5px; font-weight:700; cursor:pointer;
+    white-space:nowrap;
+    transition: all .15s ease;
+  }
+  .tb-btn:hover{ color: var(--gold-bright); border-color: var(--gold-deep); background: var(--gold-dim); }
+  .tb-btn.tb-clear{ color: var(--text-faint); }
+  .tb-btn.tb-clear:hover{ color: var(--ex-red); border-color: var(--ex-red); background: var(--ex-red-dim); }
+  .tb-filters{
+    background: var(--bg-alt); border:1px solid var(--card-border); border-radius:10px;
+    padding: 10px 12px;
+  }
+  .tb-filters select,
+  .tb-filters input[type="number"],
+  .tb-filters input[type="date"]{
+    background: var(--card); border:1px solid var(--card-border); border-radius:8px;
+    color: var(--text); font-size:12.5px; font-family:inherit;
+    padding: 7px 9px; color-scheme: dark;
+  }
+  .tb-inline-label{
+    display:flex; align-items:center; gap:6px;
+    font-size:12px; color: var(--text-faint); font-weight:600;
+  }
+  .tb-inline-label input{ width:90px; }
+  .no-results{
+    grid-column: 1 / -1;
+    text-align:center; padding: 40px 20px;
+    color: var(--text-faint); font-size:13.5px;
+  }
+
+  /* ---- Resumen de victorias/derrotas del juego ---- */
+  .game-summary{
+    display:flex; flex-wrap:wrap; gap:10px;
+    margin: -6px 0 18px;
+  }
+  .game-summary .gs-pill{
+    font-size:12px; font-weight:700;
+    background: var(--bg-alt); border:1px solid var(--card-border);
+    border-radius: 999px; padding: 5px 12px;
+    color: var(--text-dim);
+  }
+  .game-summary .gs-pill .win{ color: var(--win); }
+  .game-summary .gs-pill .loss{ color: var(--loss); }
+  .game-summary .gs-pill .draw{ color: var(--draw); }
+
+  /* ---- Modales genéricos (ranking / comparador / récords) ---- */
+  .form-box{ position: relative; }
+  .form-box.wide{ max-width: 720px; }
+  .modal-close-x{
+    position:absolute; top:16px; right:16px;
+    width:28px; height:28px; border-radius:8px;
+    background: var(--bg-alt); border:1px solid var(--card-border);
+    color: var(--text-dim); cursor:pointer; font-size:14px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .modal-close-x:hover{ background: var(--ex-red-dim); border-color: var(--ex-red); color: var(--ex-red); }
+
+  .ranking-table{ width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  .ranking-table th, .ranking-table td{ padding:9px 8px; text-align:right; border-bottom:1px solid var(--card-border); }
+  .ranking-table th:first-child, .ranking-table td:first-child{ text-align:left; }
+  .ranking-table th{
+    color: var(--text-faint); font-size:11px; text-transform:uppercase; letter-spacing:.4px;
+    cursor:pointer; user-select:none; font-weight:800;
+  }
+  .ranking-table th:hover{ color: var(--gold); }
+  .ranking-table th.sorted{ color: var(--gold); }
+  .ranking-table td.rk-name{ font-weight:700; }
+  .ranking-table td.win{ color: var(--win); }
+  .ranking-table td.loss{ color: var(--loss); }
+  .ranking-table tr:hover td{ background: var(--gold-dim); }
+  .ranking-empty{ text-align:center; color: var(--text-faint); padding:24px; font-size:13px; }
+
+  .cmp-selectors{ display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; margin-top:10px; }
+  .cmp-selectors select{
+    width:100%; background: var(--bg-alt); border:1px solid var(--card-border); border-radius:8px;
+    color: var(--text); font-size:13px; padding:9px 10px; font-family:inherit; color-scheme: dark;
+  }
+  .cmp-vs{ font-weight:900; color: var(--gold); font-size:16px; text-align:center; }
+  .cmp-result{ margin-top:18px; }
+  .cmp-heads{ display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; margin-bottom:10px; }
+  .cmp-head{ text-align:center; }
+  .cmp-head .cmp-avatar{
+    width:56px; height:56px; border-radius:50%; margin:0 auto 8px;
+    background: linear-gradient(135deg, var(--gold-deep), #1a1712);
+    background-size:cover; background-position:center;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; color:#fff;
+    border: 2px solid var(--gold-dim);
+  }
+  .cmp-head .cmp-nick{ font-weight:800; font-size:14.5px; }
+  .cmp-head .cmp-role{ font-size:11px; color: var(--text-faint); margin-top:2px; }
+  .cmp-row{ display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; padding:7px 0; border-bottom:1px solid var(--card-border); }
+  .cmp-row .cmp-label{ text-align:center; font-size:11px; color: var(--text-faint); text-transform:uppercase; letter-spacing:.3px; }
+  .cmp-row .cmp-val{ font-weight:800; font-size:15px; padding:4px 6px; border-radius:6px; }
+  .cmp-row .cmp-val.a{ text-align:right; }
+  .cmp-row .cmp-val.b{ text-align:left; }
+  .cmp-row .cmp-val.better{ color: var(--gold-bright); background: var(--gold-dim); }
+  .cmp-empty{ text-align:center; color: var(--text-faint); padding:24px; font-size:13px; }
+
+  .records-list{ display:flex; flex-direction:column; gap:10px; margin-top:10px; }
+  .record-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background: var(--bg-alt); border:1px solid var(--card-border); border-radius:10px;
+    padding:12px 14px;
+  }
+  .record-row .rr-label{ font-size:12.5px; color: var(--text-dim); }
+  .record-row .rr-value{ font-weight:800; font-size:14px; color: var(--gold-bright); text-align:right; }
+
   .card-edit-btn{
     position:absolute; top:14px; right:14px;
     width:28px; height:28px; border-radius:8px;
@@ -405,6 +533,7 @@
   .wl-row .num.win{ color: var(--win); }
   .wl-row .num.loss{ color: var(--loss); }
   .wl-row .num.draw{ color: var(--draw); }
+  .num.pct{ color: var(--gold-bright); }
 
   .update-note{
     display:flex; align-items:center; gap:9px;
@@ -632,6 +761,43 @@
 
 <nav class="tabs" id="tabs"></nav>
 
+<div class="toolbar" id="toolbar">
+  <div class="toolbar-row">
+    <div class="tb-search">
+      <span class="tb-search-ico">🔍</span>
+      <input type="text" id="tbSearch" placeholder="Buscar jugador por nickname…">
+    </div>
+    <button type="button" class="tb-btn" id="btnRanking">📊 Ranking</button>
+    <button type="button" class="tb-btn" id="btnCompare">⚔️ Comparar</button>
+    <button type="button" class="tb-btn" id="btnRecords">🏆 Récords del club</button>
+  </div>
+  <div class="toolbar-row tb-filters">
+    <select id="tbRole" title="Filtrar por rol">
+      <option value="">Todos los roles</option>
+      <option value="player">Jugador</option>
+      <option value="coach">Entrenador</option>
+      <option value="founder">Creador</option>
+    </select>
+    <select id="tbStatus" title="Filtrar por estado">
+      <option value="">Activos y ex</option>
+      <option value="active">Solo activos</option>
+      <option value="ex">Solo ex</option>
+    </select>
+    <select id="tbPosition" title="Filtrar por posición" style="display:none;">
+      <option value="">Todas las posiciones</option>
+      <option value="top">Top</option>
+      <option value="jungle">Jungla</option>
+      <option value="mid">Mid</option>
+      <option value="adc">ADC</option>
+      <option value="support">Support</option>
+    </select>
+    <label class="tb-inline-label">Mín. partidos <input type="number" id="tbMinMatches" min="0" placeholder="0"></label>
+    <label class="tb-inline-label">Incorporación desde <input type="date" id="tbJoinedFrom"></label>
+    <label class="tb-inline-label">hasta <input type="date" id="tbJoinedTo"></label>
+    <button type="button" class="tb-btn tb-clear" id="btnClearFilters">✕ Limpiar filtros</button>
+  </div>
+</div>
+
 <main id="sections"></main>
 
 <div class="cropper-overlay" id="cropperOverlay">
@@ -775,6 +941,35 @@
       <button class="btn-cancel" id="gameFormCancel" type="button">Cancelar</button>
       <button class="btn-save" id="gameFormSave" type="button">Guardar</button>
     </div>
+  </div>
+</div>
+
+<div class="form-overlay" id="rankingOverlay">
+  <div class="form-box wide">
+    <button type="button" class="modal-close-x" id="rankingClose">✕</button>
+    <h3 id="rankingTitle">📊 Ranking</h3>
+    <div id="rankingBody"></div>
+  </div>
+</div>
+
+<div class="form-overlay" id="compareOverlay">
+  <div class="form-box wide">
+    <button type="button" class="modal-close-x" id="compareClose">✕</button>
+    <h3>⚔️ Comparador de jugadores</h3>
+    <div class="cmp-selectors">
+      <select id="cmpA"><option value="">Elige un jugador…</option></select>
+      <span class="cmp-vs">VS</span>
+      <select id="cmpB"><option value="">Elige un jugador…</option></select>
+    </div>
+    <div class="cmp-result" id="cmpResult"><div class="cmp-empty">Elige dos jugadores para compararlos.</div></div>
+  </div>
+</div>
+
+<div class="form-overlay" id="recordsOverlay">
+  <div class="form-box wide">
+    <button type="button" class="modal-close-x" id="recordsClose">✕</button>
+    <h3>🏆 Récords del club</h3>
+    <div class="records-list" id="recordsBody"></div>
   </div>
 </div>
 
@@ -994,11 +1189,122 @@
     }[c]));
   }
 
+  // Suma las estadísticas de jugador + entrenador de una ficha en un único
+  // objeto (usado por filtros, ranking, comparador y récords, que quieren
+  // "el total" sin que importe si fue como jugador, entrenador o ambos).
+  function combinedStats(p){
+    const a = p.playerStats || {};
+    const b = p.coachStats || {};
+    return {
+      matches: (a.matches || 0) + (b.matches || 0),
+      maps: (a.maps || 0) + (b.maps || 0),
+      wins: (a.wins || 0) + (b.wins || 0),
+      losses: (a.losses || 0) + (b.losses || 0),
+      draws: (a.draws || 0) + (b.draws || 0)
+    };
+  }
+  // % de victorias sobre partidos con resultado (victorias+derrotas+empates).
+  // Devuelve null si todavía no hay ningún partido con resultado (para no
+  // mostrar "0%" engañoso en fichas nuevas sin datos).
+  function winPct(wins, losses, draws){
+    const denom = (wins || 0) + (losses || 0) + (draws || 0);
+    if (denom <= 0) return null;
+    return (wins || 0) / denom * 100;
+  }
+  function fmtPct(pct){
+    return pct === null ? "—" : `${pct.toFixed(1)}%`;
+  }
+  // Primera fecha de incorporación al club (la etapa más antigua con fecha),
+  // usada por el filtro "fecha de incorporación".
+  function firstJoinedDate(p){
+    if (!p.stints || !p.stints.length) return null;
+    for (const s of p.stints){
+      if (s.joined) return s.joined;
+    }
+    return null;
+  }
+
   // ---------- Estado en memoria (espejo de la base de datos en la nube) ----------
   const gamesById = new Map();   // gameId -> {id, name, order, updateNote}
   const playersById = new Map(); // playerId -> {id, gameId, nickname, ...}
   let currentGameId = null;
   let dbApi = null;
+
+  // ---------- Filtros y búsqueda de fichas ----------
+  const filterState = {
+    search: "", role: "", status: "", position: "",
+    minMatches: "", joinedFrom: "", joinedTo: ""
+  };
+  function matchesFilters(p){
+    const st = filterState;
+    if (st.search && !p.nickname.toLowerCase().includes(st.search)) return false;
+    if (st.role){
+      const roles = new Set((p.stints || []).map((s) => normalizeRole(s.role)));
+      if (!roles.has(st.role)) return false;
+    }
+    if (st.status){
+      const active = isCurrentlyActive(p);
+      if (st.status === "active" && !active) return false;
+      if (st.status === "ex" && active) return false;
+    }
+    if (st.position && p.position !== st.position) return false;
+    if (st.minMatches !== "" && combinedStats(p).matches < Number(st.minMatches)) return false;
+    if (st.joinedFrom || st.joinedTo){
+      const joined = firstJoinedDate(p);
+      if (!joined) return false;
+      if (st.joinedFrom && joined < st.joinedFrom) return false;
+      if (st.joinedTo && joined > st.joinedTo) return false;
+    }
+    return true;
+  }
+  function applyFilters(players){ return players.filter(matchesFilters); }
+  function hasActiveFilters(){
+    const st = filterState;
+    return !!(st.search || st.role || st.status || st.position || st.minMatches !== "" || st.joinedFrom || st.joinedTo);
+  }
+  function renderAllSections(){
+    gamesById.forEach((g, id) => renderGameSection(id));
+  }
+
+  // ---------- Barra de herramientas (búsqueda, filtros, ranking, comparador, récords) ----------
+  const tbSearchEl = document.getElementById("tbSearch");
+  const tbRoleEl = document.getElementById("tbRole");
+  const tbStatusEl = document.getElementById("tbStatus");
+  const tbPositionEl = document.getElementById("tbPosition");
+  const tbMinMatchesEl = document.getElementById("tbMinMatches");
+  const tbJoinedFromEl = document.getElementById("tbJoinedFrom");
+  const tbJoinedToEl = document.getElementById("tbJoinedTo");
+
+  tbSearchEl.addEventListener("input", () => {
+    filterState.search = tbSearchEl.value.trim().toLowerCase();
+    renderAllSections();
+  });
+  tbRoleEl.addEventListener("change", () => { filterState.role = tbRoleEl.value; renderAllSections(); });
+  tbStatusEl.addEventListener("change", () => { filterState.status = tbStatusEl.value; renderAllSections(); });
+  tbPositionEl.addEventListener("change", () => { filterState.position = tbPositionEl.value; renderAllSections(); });
+  tbMinMatchesEl.addEventListener("input", () => { filterState.minMatches = tbMinMatchesEl.value; renderAllSections(); });
+  tbJoinedFromEl.addEventListener("change", () => { filterState.joinedFrom = tbJoinedFromEl.value; renderAllSections(); });
+  tbJoinedToEl.addEventListener("change", () => { filterState.joinedTo = tbJoinedToEl.value; renderAllSections(); });
+
+  document.getElementById("btnClearFilters").addEventListener("click", () => {
+    filterState.search = ""; filterState.role = ""; filterState.status = "";
+    filterState.position = ""; filterState.minMatches = ""; filterState.joinedFrom = ""; filterState.joinedTo = "";
+    tbSearchEl.value = ""; tbRoleEl.value = ""; tbStatusEl.value = "";
+    tbPositionEl.value = ""; tbMinMatchesEl.value = ""; tbJoinedFromEl.value = ""; tbJoinedToEl.value = "";
+    renderAllSections();
+  });
+
+  // El filtro de posición solo tiene sentido en juegos que la usan (LoL);
+  // se oculta/muestra según el juego de la pestaña activa.
+  function updatePositionFilterVisibility(){
+    const game = gamesById.get(currentGameId);
+    const show = !!(game && game.showPositions);
+    tbPositionEl.style.display = show ? "" : "none";
+    if (!show && filterState.position){
+      filterState.position = "";
+      tbPositionEl.value = "";
+    }
+  }
 
   const tabsEl = document.getElementById("tabs");
   const sectionsEl = document.getElementById("sections");
@@ -1095,6 +1401,7 @@
     if (!currentGameId || !ids.includes(currentGameId)) currentGameId = ids[0];
     ids.forEach((id) => addGameTabAndSection(gamesById.get(id), id === currentGameId));
     ids.forEach((id) => renderGameSection(id));
+    updatePositionFilterVisibility();
   }
 
   function addGameTabAndSection(game, makeActive){
@@ -1202,6 +1509,14 @@
     posLabel.appendChild(document.createTextNode("🧭 Este juego muestra la posición del jugador (Top/Jungla/Mid/ADC/Support)"));
     section.appendChild(posLabel);
 
+    // Contador de victorias/derrotas/empates totales de todo el juego (suma
+    // de todas las fichas de esta sección, jugador + entrenador). Se
+    // recalcula cada vez que se renderiza la sección.
+    const summary = document.createElement("div");
+    summary.className = "game-summary";
+    summary.id = `summary-${game.id}`;
+    section.appendChild(summary);
+
     const grid = document.createElement("div");
     grid.className = "grid";
     grid.id = `grid-${game.id}`;
@@ -1218,6 +1533,7 @@
     document.querySelectorAll("section.game").forEach((s) => {
       s.classList.toggle("active", s.id === `sec-${id}`);
     });
+    updatePositionFilterVisibility();
   }
 
   function slugify(name){
@@ -1398,9 +1714,36 @@
   function renderGameSection(gameId){
     const grid = document.getElementById(`grid-${gameId}`);
     if (!grid) return;
+    const all = sortedPlayers(gameId);
+    renderGameSummary(gameId, all);
+    const visible = applyFilters(all);
     grid.innerHTML = "";
-    sortedPlayers(gameId).forEach((p) => grid.appendChild(renderCard(p, gameId)));
+    if (!visible.length && all.length){
+      grid.innerHTML = `<div class="no-results">🔍 Ningún jugador de esta sección cumple los filtros actuales.<br>Prueba a <a href="#" onclick="document.getElementById('btnClearFilters').click(); return false;" style="color:var(--gold-bright);">limpiar los filtros</a>.</div>`;
+    } else {
+      visible.forEach((p) => grid.appendChild(renderCard(p, gameId)));
+    }
     grid.appendChild(renderAddCard(gameId));
+  }
+
+  // Contador de victorias/derrotas/empates totales del juego (todas las
+  // fichas de la sección, sin aplicar los filtros de búsqueda: es el total
+  // real del club en ese juego).
+  function renderGameSummary(gameId, players){
+    const el = document.getElementById(`summary-${gameId}`);
+    if (!el) return;
+    const game = gamesById.get(gameId);
+    const totals = players.reduce((acc, p) => {
+      const s = combinedStats(p);
+      acc.matches += s.matches; acc.wins += s.wins; acc.losses += s.losses; acc.draws += s.draws;
+      return acc;
+    }, { matches: 0, wins: 0, losses: 0, draws: 0 });
+    const pct = winPct(totals.wins, totals.losses, totals.draws);
+    el.innerHTML = `
+      <span class="gs-pill">🎮 ${totals.matches} partido${totals.matches === 1 ? "" : "s"} en total</span>
+      <span class="gs-pill"><span class="win">${totals.wins}V</span> - <span class="loss">${totals.losses}D</span>${(game && game.allowDraws) ? ` - <span class="draw">${totals.draws}E</span>` : ``}</span>
+      <span class="gs-pill">📈 ${fmtPct(pct)} de victorias</span>
+    `;
   }
 
   function renderAddCard(gameId){
@@ -1839,7 +2182,11 @@
             <span class="num draw" title="Haz clic para escribir el número directamente">${stats.draws || 0}</span>
             <button data-action="inc">+</button>
           </div>
-        </div>` : ``}`;
+        </div>` : ``}
+        <div class="stat readonly">
+          <span class="stat-label">% Victorias</span>
+          <div class="stat-controls"><span class="num pct">${fmtPct(winPct(stats.wins, stats.losses, stats.draws))}</span></div>
+        </div>`;
   }
 
   // Bloque de solo-lectura con los totales combinados (jugador + entrenador),
@@ -1878,6 +2225,10 @@
           <span class="stat-label">Empates totales</span>
           <div class="stat-controls"><span class="num draw">${draws}</span></div>
         </div>` : ``}
+        <div class="stat readonly">
+          <span class="stat-label">% Victorias totales</span>
+          <div class="stat-controls"><span class="num pct">${fmtPct(winPct(wins, losses, draws))}</span></div>
+        </div>
       </div>`;
   }
 
@@ -2145,6 +2496,195 @@
 
     return card;
   }
+
+  // ---------- Ranking (tabla ordenable de la sección activa) ----------
+  const rankingOverlayEl = document.getElementById("rankingOverlay");
+  const rankingTitleEl = document.getElementById("rankingTitle");
+  const rankingBodyEl = document.getElementById("rankingBody");
+  const rankingState = { sortKey: "matches", sortDir: "desc" };
+  const RANKING_COLUMNS = [
+    { key: "nickname", label: "Jugador" },
+    { key: "matches", label: "Partidos" },
+    { key: "wins", label: "Victorias" },
+    { key: "losses", label: "Derrotas" },
+    { key: "pct", label: "% Victorias" }
+  ];
+  function openRanking(){
+    if (!currentGameId){ alert("Elige primero un juego."); return; }
+    const game = gamesById.get(currentGameId);
+    rankingTitleEl.textContent = `📊 Ranking — ${game ? game.name : ""}`;
+    renderRanking();
+    rankingOverlayEl.classList.add("open");
+  }
+  function closeRanking(){ rankingOverlayEl.classList.remove("open"); }
+  function renderRanking(){
+    const players = [...playersById.values()].filter((p) => p.gameId === currentGameId);
+    if (!players.length){
+      rankingBodyEl.innerHTML = `<div class="ranking-empty">Todavía no hay jugadores en esta sección.</div>`;
+      return;
+    }
+    const rows = players.map((p) => {
+      const s = combinedStats(p);
+      return { p, matches: s.matches, wins: s.wins, losses: s.losses, pct: winPct(s.wins, s.losses, s.draws) };
+    });
+    rows.sort((a, b) => {
+      const { sortKey, sortDir } = rankingState;
+      const av = sortKey === "nickname" ? a.p.nickname.toLowerCase() : (a[sortKey] === null ? -1 : a[sortKey]);
+      const bv = sortKey === "nickname" ? b.p.nickname.toLowerCase() : (b[sortKey] === null ? -1 : b[sortKey]);
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    const thead = RANKING_COLUMNS.map((c) => {
+      const sorted = rankingState.sortKey === c.key;
+      const arrow = sorted ? (rankingState.sortDir === "asc" ? " ▲" : " ▼") : "";
+      return `<th data-key="${c.key}" class="${sorted ? "sorted" : ""}">${escapeHtml(c.label)}${arrow}</th>`;
+    }).join("");
+    const tbody = rows.map(({ p, matches, wins, losses, pct }) => `
+      <tr>
+        <td class="rk-name">${escapeHtml(p.nickname)}</td>
+        <td>${matches}</td>
+        <td class="win">${wins}</td>
+        <td class="loss">${losses}</td>
+        <td>${fmtPct(pct)}</td>
+      </tr>`).join("");
+    rankingBodyEl.innerHTML = `<table class="ranking-table"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+    rankingBodyEl.querySelectorAll("th[data-key]").forEach((th) => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (rankingState.sortKey === key){
+          rankingState.sortDir = rankingState.sortDir === "asc" ? "desc" : "asc";
+        } else {
+          rankingState.sortKey = key;
+          rankingState.sortDir = key === "nickname" ? "asc" : "desc";
+        }
+        renderRanking();
+      });
+    });
+  }
+  document.getElementById("btnRanking").addEventListener("click", openRanking);
+  document.getElementById("rankingClose").addEventListener("click", closeRanking);
+
+  // ---------- Comparador VS entre dos jugadores (de cualquier juego) ----------
+  const compareOverlayEl = document.getElementById("compareOverlay");
+  const cmpAEl = document.getElementById("cmpA");
+  const cmpBEl = document.getElementById("cmpB");
+  const cmpResultEl = document.getElementById("cmpResult");
+  function populateCompareSelects(){
+    const opts = [...playersById.values()]
+      .sort((a, b) => a.nickname.localeCompare(b.nickname))
+      .map((p) => {
+        const game = gamesById.get(p.gameId);
+        return `<option value="${p.id}">${escapeHtml(p.nickname)}${game ? ` (${escapeHtml(game.name)})` : ""}</option>`;
+      }).join("");
+    const prevA = cmpAEl.value, prevB = cmpBEl.value;
+    cmpAEl.innerHTML = `<option value="">Elige un jugador…</option>` + opts;
+    cmpBEl.innerHTML = `<option value="">Elige un jugador…</option>` + opts;
+    if (playersById.has(prevA)) cmpAEl.value = prevA;
+    if (playersById.has(prevB)) cmpBEl.value = prevB;
+  }
+  function openCompare(){
+    populateCompareSelects();
+    renderCompareResult();
+    compareOverlayEl.classList.add("open");
+  }
+  function closeCompare(){ compareOverlayEl.classList.remove("open"); }
+  function cmpAvatarHtml(p){
+    if (p.photoDataUrl) return `<div class="cmp-avatar" style="background-image:url(${p.photoDataUrl})"></div>`;
+    return `<div class="cmp-avatar">${escapeHtml(initials(p.nickname))}</div>`;
+  }
+  function renderCompareResult(){
+    const pa = playersById.get(cmpAEl.value);
+    const pb = playersById.get(cmpBEl.value);
+    if (!pa || !pb){
+      cmpResultEl.innerHTML = `<div class="cmp-empty">Elige dos jugadores para compararlos.</div>`;
+      return;
+    }
+    const sa = combinedStats(pa), sb = combinedStats(pb);
+    const pcta = winPct(sa.wins, sa.losses, sa.draws), pctb = winPct(sb.wins, sb.losses, sb.draws);
+    const rows = [
+      // Partidos/Mapas jugados son datos de volumen, no de rendimiento: no
+      // se resalta ningún lado como "mejor". Derrotas es al revés que el
+      // resto (menos es mejor), así que se marca con lowerBetter.
+      { label: "Partidos totales", a: sa.matches, b: sb.matches, noHighlight: true },
+      { label: "Mapas totales", a: sa.maps, b: sb.maps, noHighlight: true },
+      { label: "Victorias totales", a: sa.wins, b: sb.wins },
+      { label: "Derrotas totales", a: sa.losses, b: sb.losses, lowerBetter: true },
+      { label: "% Victorias", a: pcta === null ? -1 : pcta, b: pctb === null ? -1 : pctb, fmt: (v) => fmtPct(v < 0 ? null : v) },
+      { label: "Torneos ganados", a: pa.titles.length, b: pb.titles.length },
+      { label: "Días en el club", a: totalDaysInHeretics(pa.stints), b: totalDaysInHeretics(pb.stints) }
+    ];
+    const heads = `
+      <div class="cmp-heads">
+        <div class="cmp-head">${cmpAvatarHtml(pa)}<div class="cmp-nick">${escapeHtml(pa.nickname)}</div><div class="cmp-role">${escapeHtml(roleLabel(currentRole(pa)))}${isCurrentlyActive(pa) ? "" : " · Ex"}</div></div>
+        <div class="cmp-vs">VS</div>
+        <div class="cmp-head">${cmpAvatarHtml(pb)}<div class="cmp-nick">${escapeHtml(pb.nickname)}</div><div class="cmp-role">${escapeHtml(roleLabel(currentRole(pb)))}${isCurrentlyActive(pb) ? "" : " · Ex"}</div></div>
+      </div>`;
+    const body = rows.map((r) => {
+      const fmt = r.fmt || ((v) => v);
+      const aWins = r.lowerBetter ? r.a < r.b : r.a > r.b;
+      const bWins = r.lowerBetter ? r.b < r.a : r.b > r.a;
+      const aBetter = !r.noHighlight && aWins, bBetter = !r.noHighlight && bWins;
+      return `
+      <div class="cmp-row">
+        <div class="cmp-val a ${aBetter ? "better" : ""}">${fmt(r.a)}</div>
+        <div class="cmp-label">${escapeHtml(r.label)}</div>
+        <div class="cmp-val b ${bBetter ? "better" : ""}">${fmt(r.b)}</div>
+      </div>`;
+    }).join("");
+    cmpResultEl.innerHTML = heads + body;
+  }
+  document.getElementById("btnCompare").addEventListener("click", openCompare);
+  document.getElementById("compareClose").addEventListener("click", closeCompare);
+  cmpAEl.addEventListener("change", renderCompareResult);
+  cmpBEl.addEventListener("change", renderCompareResult);
+
+  // ---------- Récords del club (hall of fame) ----------
+  const recordsOverlayEl = document.getElementById("recordsOverlay");
+  const recordsBodyEl = document.getElementById("recordsBody");
+  function computeClubRecords(){
+    const players = [...playersById.values()];
+    if (!players.length) return null;
+    const byMatches = [...players].sort((a, b) => combinedStats(b).matches - combinedStats(a).matches)[0];
+    const mostWins = [...players].sort((a, b) => combinedStats(b).wins - combinedStats(a).wins)[0];
+    const byTitles = [...players].sort((a, b) => b.titles.length - a.titles.length)[0];
+    const byTenure = [...players].sort((a, b) => totalDaysInHeretics(b.stints) - totalDaysInHeretics(a.stints))[0];
+    // Etapa individual más larga (un solo stint, no la suma de varias).
+    let longestStint = null, longestStintPlayer = null, longestStintDays = -1;
+    players.forEach((p) => {
+      (p.stints || []).forEach((s) => {
+        if (!s.joined) return;
+        const start = parseISO(s.joined);
+        const end = s.left && s.left !== "TBD" ? parseISO(s.left) : new Date();
+        const days = Math.round((end - start) / 86400000);
+        if (days > longestStintDays){ longestStintDays = days; longestStint = s; longestStintPlayer = p; }
+      });
+    });
+    return { byMatches, mostWins, byTitles, byTenure, longestStint, longestStintPlayer, longestStintDays };
+  }
+  function openRecords(){
+    const r = computeClubRecords();
+    if (!r){
+      recordsBodyEl.innerHTML = `<div class="ranking-empty">Todavía no hay jugadores registrados.</div>`;
+    } else {
+      const rows = [
+        { label: "🎮 Más partidos jugados/entrenados", value: `${escapeHtml(r.byMatches.nickname)} — ${combinedStats(r.byMatches).matches}` },
+        { label: "🏅 Más victorias totales", value: `${escapeHtml(r.mostWins.nickname)} — ${combinedStats(r.mostWins).wins}` },
+        { label: "🏆 Más títulos ganados", value: r.byTitles.titles.length ? `${escapeHtml(r.byTitles.nickname)} — ${r.byTitles.titles.length}` : "—" },
+        { label: "📅 Más tiempo total en el club", value: `${escapeHtml(r.byTenure.nickname)} — ${totalTenureText(r.byTenure.stints) || "—"}` },
+        { label: "⏳ Etapa individual más larga", value: r.longestStintPlayer ? `${escapeHtml(r.longestStintPlayer.nickname)} (${escapeHtml(roleLabel(normalizeRole(r.longestStint.role)))}) — ${r.longestStintDays} días` : "—" }
+      ];
+      recordsBodyEl.innerHTML = rows.map((row) => `
+        <div class="record-row">
+          <span class="rr-label">${row.label}</span>
+          <span class="rr-value">${row.value}</span>
+        </div>`).join("");
+    }
+    recordsOverlayEl.classList.add("open");
+  }
+  function closeRecords(){ recordsOverlayEl.classList.remove("open"); }
+  document.getElementById("btnRecords").addEventListener("click", openRecords);
+  document.getElementById("recordsClose").addEventListener("click", closeRecords);
 </script>
 </body>
 </html>
