@@ -769,7 +769,7 @@
   .p1-photo-empty{ display:flex; align-items:center; justify-content:center; }
   .p1-initials{ font-weight:800; font-size:34px; color:#fff; opacity:.85; }
   .p1-badge{
-    position:absolute; top:10px; left:10px;
+    position:absolute; top:10px; left:10px; z-index:2;
     font-size: 9.5px; font-weight:800; letter-spacing:.5px;
     color: #17150e;
     background: var(--gold);
@@ -782,20 +782,46 @@
   .p1-card.is-coach-ex .p1-badge{ background: transparent; border-color: var(--coach); color: var(--coach-bright); }
   .p1-card.is-founder .p1-badge{ background: var(--founder); border-color: var(--founder); color:#17102a; }
   .p1-card.is-founder-ex .p1-badge{ background: transparent; border-color: var(--founder); color: var(--founder-bright); }
+
+  /* Nombre completo en grande, arriba a la izquierda (estilo Depor), visible
+     solo al pasar el ratón por encima de la tarjeta. */
+  .p1-name-hover{
+    position:absolute; top:40px; left:12px; right:12px; z-index:1;
+    opacity:0; transform: translateY(-5px);
+    transition: opacity .2s ease, transform .2s ease;
+    pointer-events:none;
+  }
+  .p1-card:hover .p1-name-hover{ opacity:1; transform:none; }
+  .p1-fullname{
+    font-size:20px; font-weight:800; color:#fff; line-height:1.18;
+    text-shadow: 0 2px 10px rgba(0,0,0,.85), 0 1px 4px rgba(0,0,0,.9);
+  }
+  .p1-role{
+    font-size:12px; font-weight:700; color: var(--gold-bright);
+    text-transform:uppercase; letter-spacing:.4px; margin-top:5px;
+    text-shadow: 0 1px 6px rgba(0,0,0,.85);
+  }
+
   .p1-info{
     position:absolute; left:0; right:0; bottom:0;
-    padding: 10px 12px;
-    background: linear-gradient(0deg, rgba(0,0,0,.88) 0%, rgba(0,0,0,.55) 60%, transparent 100%);
+    padding: 12px;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:8px;
+    background: linear-gradient(0deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.6) 55%, transparent 100%);
   }
-  .p1-extra{
-    max-height:0; opacity:0; overflow:hidden;
-    transition: max-height .25s ease, opacity .2s ease, margin-bottom .25s ease;
+  .p1-nick{ font-size:16px; font-weight:800; color:#fff; }
+
+  /* Número grande de partidos jugados, encima de la palabra "Partidos"
+     (estilo Depor), visible solo al pasar el ratón por encima. */
+  .p1-stat-hover{
+    text-align:right; flex-shrink:0;
+    opacity:0; transform: translateY(5px);
+    transition: opacity .2s ease, transform .2s ease;
+    pointer-events:none;
   }
-  .p1-card:hover .p1-extra{ max-height:130px; opacity:1; margin-bottom:6px; }
-  .p1-fullname{ font-size:12px; font-weight:700; color:#fff; }
-  .p1-meta{ font-size:11px; color: var(--gold-bright); margin-top:3px; font-weight:600; }
-  .p1-matches{ font-size:11px; color: var(--text-dim); margin-top:2px; }
-  .p1-nick{ font-size:14.5px; font-weight:800; color:#fff; }
+  .p1-card:hover .p1-stat-hover{ opacity:1; transform:none; }
+  .p1-stat-num{ font-size:34px; font-weight:900; color: var(--gold-bright); line-height:1; }
+  .p1-stat-label{ font-size:10.5px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color: var(--text-dim); margin-top:3px; }
+
   .grid .add-card{ aspect-ratio: 3 / 4; min-height:0; }
 
   /* ==========================================================================
@@ -803,8 +829,22 @@
      datos básicos, contadores animados y vitrina de trofeos. Reutiliza las
      controles de edición ya existentes (formOverlay) tras el botón "Editar".
      ========================================================================== */
-  .detail-overlay{ z-index: 999; }
-  .detail-box{ max-width: 760px; }
+  /* Ficha del jugador como página propia (estilo Venezia): sustituye a la
+     plantilla entera (pestañas, buscador, cuadrícula) en vez de abrirse como
+     ventana emergente encima. Se navega con el botón "Volver" o con el
+     botón atrás del navegador (cada jugador tiene su propia URL). */
+  .player-page{ display:none; }
+  .player-page.active{ display:block; animation: fade .25s ease; }
+  .player-page-inner{ max-width: 760px; margin: 0 auto; padding: 24px 16px 60px; }
+  .player-back-btn{
+    appearance:none; border:1px solid var(--card-border);
+    background: var(--card); color: var(--text-dim);
+    padding: 9px 16px; border-radius: 999px;
+    font-size: 13px; font-weight:700; cursor:pointer;
+    margin-bottom: 20px;
+    transition: all .15s ease;
+  }
+  .player-back-btn:hover{ color: var(--gold-bright); border-color: var(--gold-deep); background: var(--gold-dim); }
   .detail-header{
     display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap;
     margin-bottom: 22px;
@@ -919,6 +959,13 @@
 </div>
 
 <main id="sections"></main>
+
+<section class="player-page" id="playerPage">
+  <div class="player-page-inner">
+    <button type="button" class="player-back-btn" id="playerBackBtn">← Volver a la plantilla</button>
+    <div id="detailBody"></div>
+  </div>
+</section>
 
 <div class="cropper-overlay" id="cropperOverlay">
   <div class="cropper-box">
@@ -1094,13 +1141,6 @@
     <button type="button" class="modal-close-x" id="recordsClose">✕</button>
     <h3>🏆 Récords del club</h3>
     <div class="records-list" id="recordsBody"></div>
-  </div>
-</div>
-
-<div class="form-overlay detail-overlay" id="detailOverlay">
-  <div class="form-box wide detail-box">
-    <button type="button" class="modal-close-x" id="detailClose">✕</button>
-    <div id="detailBody"></div>
   </div>
 </div>
 
@@ -1824,10 +1864,14 @@
 
     // Si la ficha del Nivel 2 está abierta, se refresca con los datos
     // nuevos (sin repetir la animación de los contadores) o se cierra si el
-    // jugador se ha eliminado mientras tanto.
+    // jugador se ha eliminado mientras tanto. Si no está abierta, se
+    // comprueba si la URL apunta directamente a un jugador (enlace
+    // compartido o recarga de la página) para abrirla automáticamente.
     if (detailState.playerId){
       if (playersById.has(detailState.playerId)) renderPlayerDetail(detailState.playerId, false);
       else closePlayerDetail();
+    } else {
+      tryOpenDeepLinkedPlayer();
     }
   }
 
@@ -2329,13 +2373,16 @@
     card.innerHTML = `
       ${photoHtml}
       <div class="p1-badge">${escapeHtml(CATEGORY_BADGE_TEXT[category])}</div>
+      <div class="p1-name-hover">
+        <div class="p1-fullname">${escapeHtml(p.fullname) || "Nombre completo pendiente"}</div>
+        <div class="p1-role">${escapeHtml(metaBits.join(" · "))}</div>
+      </div>
       <div class="p1-info">
-        <div class="p1-extra">
-          <div class="p1-fullname">${escapeHtml(p.fullname) || "Nombre completo pendiente"}</div>
-          <div class="p1-meta">${escapeHtml(metaBits.join(" · "))}</div>
-          <div class="p1-matches">${cs.matches} ${cs.matches === 1 ? "partido jugado" : "partidos jugados"}</div>
-        </div>
         <div class="p1-nick">${escapeHtml(p.nickname)}</div>
+        <div class="p1-stat-hover">
+          <div class="p1-stat-num">${cs.matches}</div>
+          <div class="p1-stat-label">Partidos</div>
+        </div>
       </div>
     `;
     card.addEventListener("click", () => openPlayerDetail(p.id));
@@ -2343,20 +2390,76 @@
   }
 
   // ---------- Nivel 2: ficha del jugador (estilo Venezia) ----------
-  const detailOverlayEl = document.getElementById("detailOverlay");
+  // Ya no es una ventana emergente: ocupa toda la página (se ocultan las
+  // pestañas, el buscador y la cuadrícula) y cada jugador tiene su propia
+  // URL (#jugador/<id>), así que el botón "Volver" y el atrás del
+  // navegador funcionan como en una página de verdad.
+  const playerPageEl = document.getElementById("playerPage");
   const detailBodyEl = document.getElementById("detailBody");
+  const toolbarEl = document.getElementById("toolbar");
+  const playerBackBtn = document.getElementById("playerBackBtn");
   const detailState = { playerId: null };
+  const PLAYER_HASH_PREFIX = "#jugador/";
 
-  function openPlayerDetail(playerId){
+  function showPlayerPage(){
+    tabsEl.style.display = "none";
+    toolbarEl.style.display = "none";
+    sectionsEl.style.display = "none";
+    playerPageEl.classList.add("active");
+    window.scrollTo(0, 0);
+  }
+  function hidePlayerPage(){
+    playerPageEl.classList.remove("active");
+    tabsEl.style.display = "";
+    toolbarEl.style.display = "";
+    sectionsEl.style.display = "";
+  }
+
+  // opts.fromPopState evita volver a tocar el historial cuando la
+  // navegación viene ya del propio botón atrás/adelante del navegador.
+  function openPlayerDetail(playerId, opts){
+    opts = opts || {};
     detailState.playerId = playerId;
     renderPlayerDetail(playerId, true);
-    detailOverlayEl.classList.add("open");
+    showPlayerPage();
+    if (!opts.fromPopState){
+      history.pushState({ heretPlayer: playerId }, "", PLAYER_HASH_PREFIX + playerId);
+    }
   }
-  function closePlayerDetail(){
-    detailOverlayEl.classList.remove("open");
+  function closePlayerDetail(opts){
+    opts = opts || {};
+    hidePlayerPage();
     detailState.playerId = null;
+    if (!opts.fromPopState && location.hash.startsWith(PLAYER_HASH_PREFIX)){
+      history.pushState({}, "", location.pathname + location.search);
+    }
   }
-  document.getElementById("detailClose").addEventListener("click", closePlayerDetail);
+  playerBackBtn.addEventListener("click", () => closePlayerDetail());
+
+  // Atrás/adelante del navegador: si la URL apunta a un jugador (y ya lo
+  // tenemos cargado) se muestra su ficha; si no, se vuelve a la plantilla.
+  window.addEventListener("popstate", () => {
+    if (location.hash.startsWith(PLAYER_HASH_PREFIX)){
+      const id = location.hash.slice(PLAYER_HASH_PREFIX.length);
+      if (playersById.has(id)){
+        detailState.playerId = id;
+        renderPlayerDetail(id, true);
+        showPlayerPage();
+        return;
+      }
+    }
+    closePlayerDetail({ fromPopState: true });
+  });
+
+  // Enlace directo a un jugador (p.ej. al recargar con #jugador/xyz en la
+  // URL, o al llegar desde un enlace compartido): se abre su ficha en
+  // cuanto sus datos llegan de Firestore.
+  function tryOpenDeepLinkedPlayer(){
+    if (!location.hash.startsWith(PLAYER_HASH_PREFIX)) return;
+    const id = location.hash.slice(PLAYER_HASH_PREFIX.length);
+    if (detailState.playerId === id) return;
+    if (playersById.has(id)) openPlayerDetail(id, { fromPopState: true });
+  }
 
   // Contador animado: sube desde 0 hasta el valor final al abrir la ficha.
   function animateCounter(el, target, opts){
