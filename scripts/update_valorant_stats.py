@@ -34,6 +34,12 @@ Qué hace cada ejecución:
      pero sus fechas sí encajan, se suma igualmente pero marcado como
      "por fechas" para que se pueda revisar.
 
+Además, después de aplicar partidos nuevos, actualiza automáticamente el
+campo "hasta qué partido/fecha está actualizada esta sección" que ya existe
+en la ficha del juego (games/valorant → updateNote, el mismo campo que se
+edita a mano en estadisticas.html) para que se vea, sin tener que mirar
+Firestore ni GitHub, hasta qué partido está al día la sección.
+
 Seguridad para no meter datos mal en una base de datos en vivo:
   - Si en un mapa no se puede identificar con garantías el lado de Team
     Heretics (falta el tag "TH"), ese mapa se descarta y el partido queda
@@ -69,6 +75,7 @@ VLR_TEAM_TAG = "TH"
 VLR_BASE = "https://www.vlr.gg"
 MATCHES_URL = f"{VLR_BASE}/team/matches/{VLR_TEAM_ID}/{VLR_TEAM_SLUG}/?group=completed"
 TEAM_URL = f"{VLR_BASE}/team/{VLR_TEAM_ID}/{VLR_TEAM_SLUG}"
+GAME_ID_FIRESTORE = "valorant"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; heretics-calendar-bot/1.0; "
@@ -117,6 +124,13 @@ def parse_match(mid, slug):
         except ValueError:
             match_date = None
 
+    opponent_name = None
+    for name_el in soup.find_all(class_="match-header-link-name"):
+        text = name_el.get_text(strip=True)
+        if text and "heretics" not in text.lower():
+            opponent_name = text
+            break
+
     maps = []
     for game_div in soup.find_all("div", class_="vm-stats-game"):
         game_id = game_div.get("data-game-id")
@@ -157,7 +171,8 @@ def parse_match(mid, slug):
 
         maps.append({"players": th_players, "th_won": map_winner_is_th})
 
-    return {"id": mid, "slug": slug, "url": url, "date": match_date, "maps": maps}
+    return {"id": mid, "slug": slug, "url": url, "date": match_date,
+             "opponent": opponent_name, "maps": maps}
 
 
 def get_vlr_coaches():
@@ -242,6 +257,15 @@ def get_valorant_players(db):
     return out
 
 
+def update_game_note(db, text):
+    """Actualiza el campo 'hasta qué partido/fecha está actualizada esta
+    sección' de la ficha del juego (el mismo que se edita a mano en
+    estadisticas.html). Usa set(merge=True) para no pisar el resto de
+    campos de la ficha (nombre, orden, etc.) ni fallar si por lo que sea el
+    documento no existiera todavía."""
+    db.collection("games").document(GAME_ID_FIRESTORE).set({"updateNote": text}, merge=True)
+
+
 def main():
     db, firestore = init_firestore()
     state_ref = db.collection("automation_state").document("vlr_valorant")
@@ -277,9 +301,21 @@ def main():
             f"YA procesados, **sin sumar ninguna estadística** (para no duplicar partidos que "
             f"ya metiste a mano). A partir de ahora, las ejecuciones normales (sin --seed) solo "
             f"contarán partidos NUEVOS que se jueguen de aquí en adelante.",
-            "",
-            "Partidos marcados:",
         ]
+        # VLR.gg lista los partidos completados del más reciente al más
+        # antiguo, así que new_matches[0] es el último jugado: se aprovecha
+        # para dejar ya rellena la nota de "actualizado hasta..." en vez de
+        # esperar semanas al primer partido realmente nuevo.
+        try:
+            latest_mid, latest_slug = new_matches[0]
+            latest = parse_match(latest_mid, latest_slug)
+            if latest["date"]:
+                note = f"Actualizado hasta el partido vs. {latest['opponent'] or '?'} ({latest['date'].strftime('%d/%m/%Y')})"
+                update_game_note(db, note)
+                lines.append(f"\nNota de la sección actualizada: {note!r}")
+        except Exception as e:
+            lines.append(f"\n(No se pudo rellenar automáticamente la nota de 'actualizado hasta...': {e})")
+        lines.append("\nPartidos marcados:")
         lines += [f"- [{slug}](https://www.vlr.gg/{mid}/{slug})" for mid, slug in new_matches]
         write_step_summary("\n".join(lines))
         return
@@ -371,14 +407,32 @@ def main():
         batch.commit()
 
         result_txt = "victoria" if series_won else "derrota"
-        matches_ok.append((slug, m["url"], result_txt, th_won_count, th_lost_count))
+        matches_ok.append((slug, m["url"], result_txt, th_won_count, th_lost_count, m["date"], m["opponent"]))
         print(f"  -> aplicado: {result_txt} ({th_won_count}-{th_lost_count} mapas), "
               f"{len(participants)} jugador(es) sumados.")
+
+    if matches_ok:
+        # El partido más reciente entre los aplicados en esta ejecución (por
+        # fecha, no por orden de proceso) es el que se refleja en el aviso
+        # de "actualizado hasta..." de la sección.
+        latest = max(
+            (mo for mo in matches_ok if mo[5] is not None),
+            key=lambda mo: mo[5],
+            default=None,
+        )
+        if latest:
+            _, _, latest_res, _, _, latest_date, latest_opp = latest
+            note = f"Actualizado hasta el partido vs. {latest_opp or '?'} ({latest_date.strftime('%d/%m/%Y')})"
+            try:
+                update_game_note(db, note)
+                print(f"Nota de la sección actualizada: {note!r}")
+            except Exception as e:
+                print(f"  ! no se pudo actualizar la nota de la sección: {e}")
 
     lines = []
     if matches_ok:
         lines.append("### ✅ Partidos aplicados a las estadísticas")
-        for slug, url, res, w, l in matches_ok:
+        for slug, url, res, w, l, _, _ in matches_ok:
             lines.append(f"- [{slug}]({url}) — {res} ({w}-{l} mapas)")
     if coach_credits:
         lines.append("### 🧑‍🏫 Entrenadores sumados")
