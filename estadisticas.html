@@ -855,7 +855,7 @@
   .pv-header{
     position: relative;
     background: linear-gradient(145deg, #000000, #171512 70%);
-    padding: 120px 7vw 64px;
+    padding: 120px 7vw 64px 0;
     min-height: 64vh;
     display:flex; flex-direction:column; justify-content:center;
     overflow:hidden;
@@ -872,30 +872,42 @@
     pointer-events:none; user-select:none;
     z-index:0;
   }
-  .pv-header-top{
-    position: relative; z-index:1;
-    display:flex; gap:44px; align-items:center; flex-wrap:wrap;
+  /* Foto a sangre completa: ocupa desde el borde izquierdo de la pantalla
+     hasta arriba y abajo del todo de la cabecera (no es una caja/recuadro
+     flotando dentro). Solo el lado derecho se desvanece hacia el negro del
+     fondo para dar paso al texto; el jugador se ve entero, sin recortes. */
+  .pv-photo-bleed{
+    position:absolute; top:0; left:0; bottom:0;
+    width: min(46vw, 640px); min-width: 260px;
+    z-index:0; cursor:pointer; overflow:hidden;
+    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 58%, transparent 97%);
+    mask-image: linear-gradient(to right, #000 0%, #000 58%, transparent 97%);
   }
-  .pv-photo{
-    position: relative;
-    width: 230px; height: 230px; border-radius: 26px; flex-shrink:0;
+  .pv-photo-bleed img{ width:100%; height:100%; object-fit:cover; object-position: center 22%; display:block; }
+  /* Solo cuando no hay foto real se ve un color de relleno; con foto real
+     es la imagen en sí, sin caja ni borde. */
+  .pv-photo-bleed.pv-photo-bleed-empty{
     background: linear-gradient(135deg, var(--gold-deep), #1a1712);
     display:flex; align-items:center; justify-content:center;
-    overflow:hidden; cursor:pointer;
-    border: 2px solid var(--gold-dim);
-    box-shadow: 0 16px 44px rgba(0,0,0,.55);
   }
-  .pv-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .pv-initials{ font-weight:800; font-size:64px; color:#fff; opacity:.85; }
-  .pv-photo input[type="file"]{ position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .pv-initials{ font-weight:800; font-size:96px; color:#fff; opacity:.85; }
+  .pv-photo-bleed input[type="file"]{ position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; z-index:2; }
   .pv-photo-overlay{
     position:absolute; inset:0;
-    background: rgba(0,0,0,.62);
+    background: rgba(0,0,0,.5);
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:5px; font-size:13px; font-weight:700; color:#fff;
+    gap:6px; font-size:13px; font-weight:700; color:#fff;
     opacity:0; transition: opacity .15s ease; pointer-events:none; text-align:center;
   }
-  .pv-photo:hover .pv-photo-overlay{ opacity:1; }
+  .pv-photo-bleed:hover .pv-photo-overlay{ opacity:1; }
+
+  /* Bloque de texto: se desplaza a la derecha lo suficiente para arrancar
+     ya dentro de la zona donde la foto se ha desvanecido casi del todo. */
+  .pv-header-info{
+    position: relative; z-index:1;
+    margin-left: min(36vw, 500px);
+  }
+  .pv-header-top{ display:block; }
   .pv-basic{ flex:1; min-width:280px; }
   .pv-nick{ font-size:52px; font-weight:900; color:#fff; display:flex; align-items:center; gap:16px; flex-wrap:wrap; letter-spacing:-.5px; line-height:1.05; }
   .pv-fullname{ font-size:20px; color: var(--text-dim); margin-top:8px; }
@@ -982,9 +994,19 @@
   .wz-empty{ color:#9a927c; font-size:15px; text-align:center; }
 
   @media (max-width: 700px){
-    .pv-header{ padding: 88px 24px 48px; min-height: auto; }
-    .pv-header-top{ gap:24px; }
-    .pv-photo{ width:150px; height:150px; border-radius:20px; }
+    /* En móvil no hay sitio para foto-a-la-izquierda + texto-a-la-derecha,
+       así que la foto pasa a ser un banner a todo lo ancho arriba, con el
+       desvanecido en la parte de ABAJO (en vez de a la derecha) para dar
+       paso al texto, que queda debajo. */
+    .pv-header{ padding: 0 0 48px; min-height: auto; flex-direction:column; }
+    .pv-photo-bleed{
+      position:relative; top:auto; left:auto; bottom:auto;
+      width:100%; height:300px;
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+      mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+    }
+    .pv-initials{ font-size:48px; }
+    .pv-header-info{ margin-left:0; margin-top:-56px; padding:0 24px; }
     .pv-nick{ font-size:32px; gap:10px; }
     .pv-fullname{ font-size:16px; }
     .pv-row{ font-size:14px; }
@@ -2710,23 +2732,25 @@
       <div class="pv-card">
         <div class="pv-header">
           <div class="pv-crest"></div>
-          <div class="pv-header-top">
-            <div class="pv-photo" id="detailPhoto" title="Haz clic para cambiar la foto">
-              ${p.photoDataUrl ? `<img src="${p.photoDataUrl}" alt="${escapeHtml(p.nickname)}">` : `<span class="pv-initials">${escapeHtml(initials(p.nickname))}</span>`}
-              <div class="pv-photo-overlay"><span>📷</span><span>Cambiar foto</span></div>
-              <input type="file" accept="image/*" id="detailPhotoInput" aria-label="Cambiar foto de ${escapeHtml(p.nickname)}">
-            </div>
-            <div class="pv-basic">
-              <div class="pv-nick">${escapeHtml(p.nickname)} ${CATEGORY_BADGE_MAP[category]}${posMeta ? `<span class="position-badge"><img class="position-icon" src="${posMeta.icon}" alt="${escapeHtml(posMeta.label)}"> ${escapeHtml(posMeta.label)}</span>` : ""}</div>
-              ${p.fullname ? `<div class="pv-fullname">${escapeHtml(p.fullname)}</div>` : ""}
-              <div class="pv-row"><span class="dr-label">Procedencia</span><span class="dr-value">${countryLine}</span></div>
-              <div class="pv-row"><span class="dr-label">Nacimiento</span><span class="dr-value">${birthLine}</span></div>
-              ${chipRowHtml}
-            </div>
+          <div class="pv-photo-bleed${p.photoDataUrl ? "" : " pv-photo-bleed-empty"}" id="detailPhoto" title="Haz clic para cambiar la foto">
+            ${p.photoDataUrl ? `<img src="${p.photoDataUrl}" alt="${escapeHtml(p.nickname)}">` : `<span class="pv-initials">${escapeHtml(initials(p.nickname))}</span>`}
+            <div class="pv-photo-overlay"><span>📷</span><span>Cambiar foto</span></div>
+            <input type="file" accept="image/*" id="detailPhotoInput" aria-label="Cambiar foto de ${escapeHtml(p.nickname)}">
           </div>
-          <div class="pv-actions">
-            <button type="button" class="tb-btn" id="detailEditBtn">✏️ Editar ficha</button>
-            ${becomeCoachHtml}
+          <div class="pv-header-info">
+            <div class="pv-header-top">
+              <div class="pv-basic">
+                <div class="pv-nick">${escapeHtml(p.nickname)} ${CATEGORY_BADGE_MAP[category]}${posMeta ? `<span class="position-badge"><img class="position-icon" src="${posMeta.icon}" alt="${escapeHtml(posMeta.label)}"> ${escapeHtml(posMeta.label)}</span>` : ""}</div>
+                ${p.fullname ? `<div class="pv-fullname">${escapeHtml(p.fullname)}</div>` : ""}
+                <div class="pv-row"><span class="dr-label">Procedencia</span><span class="dr-value">${countryLine}</span></div>
+                <div class="pv-row"><span class="dr-label">Nacimiento</span><span class="dr-value">${birthLine}</span></div>
+                ${chipRowHtml}
+              </div>
+            </div>
+            <div class="pv-actions">
+              <button type="button" class="tb-btn" id="detailEditBtn">✏️ Editar ficha</button>
+              ${becomeCoachHtml}
+            </div>
           </div>
         </div>
 
