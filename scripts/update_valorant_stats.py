@@ -254,17 +254,34 @@ def main():
     print(f"Partidos 'completed' encontrados en VLR.gg: {len(completed)}")
     new_matches = [(mid, slug) for mid, slug in completed if mid not in processed]
 
+    def write_step_summary(text):
+        print("\n" + text)
+        step_summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+        if step_summary_path:
+            with open(step_summary_path, "a", encoding="utf-8") as f:
+                f.write(text + "\n")
+
     if not new_matches:
-        print("No hay partidos nuevos desde la última vez. Nada que hacer.")
+        write_step_summary(
+            "No hay partidos nuevos desde la última vez (ya estaban todos marcados como "
+            "procesados). No se ha tocado ninguna estadística."
+        )
         return
 
     if seed_mode:
         ids_to_seed = [mid for mid, _ in new_matches]
-        print(f"Modo --seed: marcando {len(ids_to_seed)} partido(s) ya existentes en VLR.gg "
-              f"como YA procesados, SIN tocar ninguna estadística (arranque seguro, para no "
-              f"duplicar partidos que ya metiste a mano). A partir de ahora solo se contarán "
-              f"partidos NUEVOS que se jueguen de aquí en adelante.")
         state_ref.set({"processedMatchIds": firestore.ArrayUnion(ids_to_seed)}, merge=True)
+        lines = [
+            "### 🌱 Arranque seguro (--seed)",
+            f"Se han marcado **{len(ids_to_seed)} partido(s)** que ya existían en VLR.gg como "
+            f"YA procesados, **sin sumar ninguna estadística** (para no duplicar partidos que "
+            f"ya metiste a mano). A partir de ahora, las ejecuciones normales (sin --seed) solo "
+            f"contarán partidos NUEVOS que se jueguen de aquí en adelante.",
+            "",
+            "Partidos marcados:",
+        ]
+        lines += [f"- [{slug}](https://www.vlr.gg/{mid}/{slug})" for mid, slug in new_matches]
+        write_step_summary("\n".join(lines))
         return
 
     valorant_players = get_valorant_players(db)
@@ -375,13 +392,7 @@ def main():
     if matches_skipped:
         lines.append("### ⏭️ Partidos omitidos por seguridad (revisar a mano)")
         lines += [f"- {slug}: {reason}" for slug, reason in matches_skipped]
-    summary_text = "\n".join(lines) if lines else "Sin cambios."
-    print("\n" + summary_text)
-
-    step_summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
-    if step_summary_path:
-        with open(step_summary_path, "a", encoding="utf-8") as f:
-            f.write(summary_text + "\n")
+    write_step_summary("\n".join(lines) if lines else "Sin cambios.")
 
 
 if __name__ == "__main__":
