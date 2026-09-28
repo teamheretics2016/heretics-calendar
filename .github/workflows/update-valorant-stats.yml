@@ -1,0 +1,45 @@
+name: Actualizar estadísticas de Valorant (VLR.gg)
+
+# Se lanza solo (todos los días) para detectar partidos nuevos ya jugados, y
+# también se puede lanzar a mano desde la pestaña "Actions" del repositorio
+# con el botón "Run workflow". La primera vez que se active hay que
+# ejecutarlo a mano con la casilla "seed" marcada — ver instrucciones en
+# scripts/update_valorant_stats.py.
+on:
+  schedule:
+    - cron: "17 9 * * *" # todos los días a las 09:17 UTC
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Arranque seguro: marca los partidos que ya existen ahora mismo como procesados SIN sumar nada (usar solo la primera vez)"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  update-valorant-stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias (Firebase Admin + lector de HTML)
+        run: pip install --quiet firebase-admin beautifulsoup4
+
+      - name: Sumar partidos nuevos de Valorant a las estadísticas
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ "${{ github.event.inputs.seed }}" = "true" ]; then
+            python scripts/update_valorant_stats.py --seed
+          else
+            python scripts/update_valorant_stats.py
+          fi
