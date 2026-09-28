@@ -1,0 +1,47 @@
+name: Actualizar logos de rivales (PandaScore)
+
+# Se dispara solo cuando cambia events.json (o sea, cada vez que subís
+# partidos nuevos por la web de GitHub) y también se puede lanzar a mano
+# desde la pestaña "Actions" del repositorio con el botón "Run workflow".
+on:
+  push:
+    branches: [main]
+    paths:
+      - "events.json"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-logos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias (solo Pillow, para redimensionar los logos)
+        run: pip install --quiet Pillow
+
+      - name: Buscar y añadir logos nuevos desde PandaScore
+        id: update
+        env:
+          PANDASCORE_TOKEN: ${{ secrets.PANDASCORE_TOKEN }}
+        run: python scripts/update_team_logos.py
+
+      - name: Guardar los cambios en el repositorio (si hay logos nuevos)
+        run: |
+          git config user.name "heretics-logo-bot"
+          git config user.email "actions@github.com"
+          if git diff --quiet -- index.html; then
+            echo "Sin cambios en index.html, no hace falta commit."
+          else
+            git add index.html
+            git commit -m "Añadir logos de rivales nuevos (PandaScore, automático)"
+            git push
+          fi
