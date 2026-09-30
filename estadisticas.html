@@ -303,8 +303,20 @@
     display:inline-flex; align-items:center; gap:4px;
   }
   .position-icon{
-    width: 13px; height: 13px; object-fit: contain; display:block;
+    width: 19px; height: 19px; object-fit: contain; display:block;
   }
+  .position-checks{ display:flex; flex-wrap:wrap; gap:8px; }
+  .position-check{
+    display:flex; align-items:center; gap:6px;
+    font-size:13px; color: var(--text-dim);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--card-border);
+    padding: 6px 10px 6px 8px; border-radius: 8px;
+    cursor:pointer; user-select:none;
+  }
+  .position-check:hover{ border-color: var(--gold); color: var(--text); }
+  .position-check input{ accent-color: var(--gold); width:15px; height:15px; cursor:pointer; }
+  .position-check .position-icon{ width:16px; height:16px; }
 
   /* ---- Barra de filtros / búsqueda / acciones ---- */
   .toolbar{
@@ -1113,10 +1125,8 @@
     </div>
 
     <div class="form-field" id="fPositionWrap" style="display:none;">
-      <label for="fPosition">Posición</label>
-      <select id="fPosition">
-        <option value="">Sin especificar</option>
-      </select>
+      <label>Posición (puede tener varias)</label>
+      <div id="fPositionOptions" class="position-checks"></div>
     </div>
 
     <div class="form-field">
@@ -1402,6 +1412,30 @@
     }).join("");
     return `<option value="">${escapeHtml(placeholder)}</option>${opts}`;
   }
+  // Igual que positionOptionsHtml pero como grupo de checkboxes, para poder
+  // marcar varias posiciones a la vez en un mismo jugador (p.ej. un jugador
+  // de CS:GO puede ser a la vez AWP y IGL).
+  function positionCheckboxesHtml(gameId){
+    const keys = POSITIONS_BY_GAME[gameId] || [];
+    return keys.map((k) => {
+      const meta = POSITION_META[k];
+      if (!meta) return "";
+      return `<label class="position-check"><input type="checkbox" value="${k}"><img class="position-icon" src="${meta.icon}" alt=""> ${escapeHtml(meta.label)}</label>`;
+    }).join("");
+  }
+  // Normaliza el/los campo(s) de posición guardados en Firestore a un array
+  // de claves válidas para el juego. Acepta tanto el formato nuevo
+  // (positions: array) como el antiguo de un único valor (position: string),
+  // para no perder los datos ya guardados de LoL.
+  function normalizePositions(positionsArr, legacyPosition){
+    const raw = Array.isArray(positionsArr) ? positionsArr : (legacyPosition ? [legacyPosition] : []);
+    const seen = new Set();
+    const out = [];
+    raw.forEach((k) => {
+      if (POSITION_META[k] && !seen.has(k)){ seen.add(k); out.push(k); }
+    });
+    return out;
+  }
 
   // Lugar de procedencia (país) de cada jugador: lista de códigos ISO
   // 3166-1 alpha-2. El nombre en español y el emoji de bandera se calculan
@@ -1580,7 +1614,7 @@
       if (st.status === "active" && !active) return false;
       if (st.status === "ex" && active) return false;
     }
-    if (st.position && p.position !== st.position) return false;
+    if (st.position && !(p.positions || []).includes(st.position)) return false;
     if (st.minMatches !== "" && combinedStats(p).matches < Number(st.minMatches)) return false;
     if (st.joinedFrom || st.joinedTo){
       const joined = firstJoinedDate(p);
@@ -2000,9 +2034,10 @@
         coachStats,
         titles: Array.isArray(data.titles) ? data.titles : [],
         photoDataUrl: data.photoDataUrl || null,
-        // Rol/posición (Top/Jungla/Mid/ADC/Support): solo se usa y se
-        // muestra en los juegos que lo tengan activado (p.ej. LoL).
-        position: POSITION_META[data.position] ? data.position : null,
+        // Rol/posición (Top/Jungla/Mid/ADC/Support, IGL/AWP/Entry...): un
+        // jugador puede tener varias a la vez; solo se usa y se muestra en
+        // los juegos que lo tengan activado (p.ej. LoL, CS:GO).
+        positions: normalizePositions(data.positions, data.position),
         createdAt: data.createdAt || 0
       });
       affected.add(data.gameId);
@@ -2095,7 +2130,7 @@
         fCountry.appendChild(opt);
       });
   })();
-  const fPosition = document.getElementById("fPosition");
+  const fPositionOptions = document.getElementById("fPositionOptions");
   const fPositionWrap = document.getElementById("fPositionWrap");
   const fMatches = document.getElementById("fMatches");
   const fMaps = document.getElementById("fMaps");
@@ -2223,8 +2258,13 @@
     fFullname.value = player ? player.fullname || "" : "";
     fBirth.value = player && player.birth ? player.birth : "";
     fCountry.value = player && player.country ? player.country : "";
-    fPosition.innerHTML = positionOptionsHtml(gameId, "Sin especificar");
-    fPosition.value = player && player.position ? player.position : "";
+    fPositionOptions.innerHTML = positionCheckboxesHtml(gameId);
+    {
+      const selectedPositions = new Set(normalizePositions(player && player.positions, player && player.position));
+      fPositionOptions.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+        cb.checked = selectedPositions.has(cb.value);
+      });
+    }
 
     clearStintRows();
     const stints = (player && player.stints && player.stints.length) ? player.stints : [{ role: "player", joined: "", left: null }];
@@ -2328,7 +2368,7 @@
       fullname: fFullname.value.trim(),
       birth: fBirth.value || null,
       country: fCountry.value || null,
-      position: fPosition.value || null,
+      positions: Array.from(fPositionOptions.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value),
       stints: stintsResult.stints,
       playerStats, coachStats,
       titles
@@ -2673,7 +2713,7 @@
     const game = gamesById.get(p.gameId);
     const allowDraws = !!(game && game.allowDraws);
     const showPositions = !!(game && game.showPositions);
-    const posMeta = showPositions && p.position ? POSITION_META[p.position] : null;
+    const posMetaList = showPositions ? (p.positions || []).map((k) => POSITION_META[k]).filter(Boolean) : [];
     const category = cardCategory(p);
     const active = isCurrentlyActive(p);
     const hasPlayerStint = p.stints.some((s) => s.role === "player");
@@ -2758,7 +2798,7 @@
           <div class="pv-header-info">
             <div class="pv-header-top">
               <div class="pv-basic">
-                <div class="pv-nick">${escapeHtml(p.nickname)} ${CATEGORY_BADGE_MAP[category]}${posMeta ? `<span class="position-badge"><img class="position-icon" src="${posMeta.icon}" alt="${escapeHtml(posMeta.label)}"> ${escapeHtml(posMeta.label)}</span>` : ""}</div>
+                <div class="pv-nick">${escapeHtml(p.nickname)} ${CATEGORY_BADGE_MAP[category]}${posMetaList.map((meta) => `<span class="position-badge"><img class="position-icon" src="${meta.icon}" alt="${escapeHtml(meta.label)}"> ${escapeHtml(meta.label)}</span>`).join("")}</div>
                 ${p.fullname ? `<div class="pv-fullname">${escapeHtml(p.fullname)}</div>` : ""}
                 <div class="pv-row"><span class="dr-label">Procedencia</span><span class="dr-value">${countryLine}</span></div>
                 <div class="pv-row"><span class="dr-label">Nacimiento</span><span class="dr-value">${birthLine}</span></div>
