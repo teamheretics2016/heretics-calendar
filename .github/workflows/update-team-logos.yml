@@ -13,12 +13,19 @@ on:
 permissions:
   contents: write
 
+# Evita que dos ejecuciones se pisen entre sí
+concurrency:
+  group: update-logos
+  cancel-in-progress: false
+
 jobs:
   update-logos:
     runs-on: ubuntu-latest
     steps:
       - name: Descargar el repositorio
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Preparar Python
         uses: actions/setup-python@v5
@@ -43,5 +50,14 @@ jobs:
           else
             git add index.html
             git commit -m "Añadir logos de rivales nuevos (PandaScore, automático)"
-            git push
+            for i in 1 2 3 4 5; do
+              if git pull --rebase origin main && git push; then
+                exit 0
+              fi
+              echo "Push rechazado (intento $i de 5), reintentando..."
+              git rebase --abort 2>/dev/null || true
+              sleep $((i * 3))
+            done
+            echo "No se pudo subir el cambio tras 5 intentos."
+            exit 1
           fi
