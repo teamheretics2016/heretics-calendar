@@ -111,12 +111,21 @@ def extract_existing_logo_keys(html):
     return set(keys), idx + len(marker)
 
 
+# Equipos cuyo nombre contiene el de otro equipo pero que son equipos distintos.
+# Nunca se emparejan por coincidencia parcial: solo por nombre exacto.
+DISTINCT_TEAMS = {"g2 nord", "g2 minnesota"}
+
+
 def has_existing_logo(opponent_name, existing_keys):
     k = normalize(opponent_name)
     lookup = NAME_VARIANTS.get(k, k)
     if lookup in existing_keys or k in existing_keys:
         return True
+    if k in DISTINCT_TEAMS:
+        return False
     for tk in existing_keys:
+        if tk in DISTINCT_TEAMS:
+            continue
         if word_boundary_match(k, tk):
             return True
     return False
