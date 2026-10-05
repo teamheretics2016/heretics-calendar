@@ -801,7 +801,7 @@ const ABBR={
   'los angeles thieves':'LAT','la thieves':'LAT','optic texas':'OPT','toronto ultra':'TU',
   'atlanta faze':'AFZ','atl faze':'AFZ','seattle surge':'SS','boston breach':'BB',
   'cloud9 ny':'C9','c9ny':'C9','nip':'NIP','m80':'M80','weibo gaming':'WG','furia':'FUR',
-  'oxygen esports':'OXG','g2 minnesota':'G2M','riyadh falcons':'RF','paris m8':'PM8',
+  'oxygen esports':'OXG','g2 minnesota':'G2M','g2 nord':'G2N','riyadh falcons':'RF','paris m8':'PM8',
   'toronto koi':'TK','los angeles guerrillas m8':'LAG','los angeles guerrillas':'LAG',
   'team peps':'TEP','nightbirds':'NTB','shikigami':'SKG','mrc #2':'MRC','pulsar':'PLS',
   'ulf':'ULF','gentlemates':'GM','fut':'FUT','fut esports':'FUT','barça':'BAR','barça esports':'BAR',
@@ -835,9 +835,15 @@ function teamSVG(name,color){
   // se colaba con "sen" (de Sentinels) — dos rivales nuevos con el logo de
   // otro equipo completamente distinto. Con límites de palabra, "ub" solo
   // coincide si aparece como palabra suelta, no enterrada dentro de otra.
+  // Equipos cuyo nombre CONTIENE el de otro equipo pero son equipos distintos
+  // (p.ej. "G2 Nord" y "G2 Minnesota" no son "G2"): solo se emparejan por
+  // nombre exacto (arriba), nunca por la coincidencia de palabra completa.
+  // Si no hay logo propio, se muestra el circulo de iniciales.
+  const DISTINCT_TEAMS=['g2 nord','g2 minnesota'];
+  const isDistinct=DISTINCT_TEAMS.includes(k);
   const esc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   const kBoundaryRe=new RegExp('(^|\\s)'+esc(k)+'($|\\s)');
-  for(const [tk,tv] of Object.entries(TEAM_LOGOS)){
+  for(const [tk,tv] of (isDistinct?[]:Object.entries(TEAM_LOGOS))){
     if(!tk) continue;
     const tkBoundaryRe=new RegExp('(^|\\s)'+esc(tk)+'($|\\s)');
     if(tkBoundaryRe.test(k)||kBoundaryRe.test(tk)) return tv;
