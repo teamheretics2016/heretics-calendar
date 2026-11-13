@@ -136,6 +136,59 @@ main{padding:24px 22px;max-width:1440px;margin:0 auto}
 .result-badge.W{background:var(--w);color:#fff;}
 .result-badge.L{background:var(--l);color:#fff;}
 .result-badge.none{background:rgba(255,255,255,.12);color:rgba(255,255,255,.45);font-size:14px;}
+.result-badge.D{background:#a3a3a3;color:#111;}
+/* Marcador junto al badge de resultado */
+.score-pill{
+  position:absolute;top:15px;left:52px;z-index:10;
+  padding:2px 8px;border-radius:999px;
+  background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.18);color:#fff;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;letter-spacing:.5px;
+  cursor:pointer;user-select:none;
+}
+.score-pill:empty{display:none}
+/* Editor de resultado + marcador */
+.rm-head{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;text-transform:uppercase;margin-bottom:2px;padding-right:34px}
+.rm-sub{font-family:'Barlow',sans-serif;font-size:12.5px;color:var(--muted);margin-bottom:16px}
+.rm-label{font-family:'Barlow',sans-serif;font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.rm-res{display:flex;gap:8px;margin-bottom:16px}
+.rm-res button{
+  flex:1;padding:10px 6px;border-radius:10px;border:1px solid var(--border);
+  background:rgba(255,255,255,.04);color:#fff;cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;letter-spacing:.5px;text-transform:uppercase;
+}
+.rm-res button.on.W{background:var(--w);border-color:var(--w)}
+.rm-res button.on.L{background:var(--l);border-color:var(--l)}
+.rm-res button.on.D{background:#a3a3a3;border-color:#a3a3a3;color:#111}
+.rm-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px;margin-bottom:14px}
+.rm-score label{display:block;font-family:'Barlow',sans-serif;font-size:11.5px;color:var(--muted);margin-bottom:5px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rm-score input{
+  width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid var(--border);
+  background:rgba(255,255,255,.06);color:#fff;text-align:center;
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:24px;
+}
+.rm-score .rm-dash{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:24px;padding-bottom:10px;color:var(--muted)}
+.rm-info{font-family:'Barlow',sans-serif;font-size:12.5px;line-height:1.45;border-radius:10px;padding:10px 12px;margin-bottom:14px;background:rgba(255,255,255,.05);color:rgba(255,255,255,.8)}
+.rm-info.ok{background:rgba(34,197,94,.12);color:#bbf7d0}
+.rm-info.warn{background:rgba(245,158,11,.12);color:#fde68a}
+.rm-info.err{background:rgba(239,68,68,.14);color:#fecaca}
+.rm-actions{display:flex;gap:8px;justify-content:space-between}
+.rm-actions button{
+  padding:10px 14px;border-radius:10px;border:1px solid var(--border);cursor:pointer;
+  font-family:'Barlow',sans-serif;font-weight:700;font-size:13px;
+}
+.rm-btn-clear{background:transparent;color:var(--muted)}
+.rm-btn-clear:hover{color:#fff}
+.rm-btn-save{background:#fff;color:#111;border-color:#fff}
+.rm-btn-save:disabled{opacity:.4;cursor:not-allowed}
+.th-toast{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);z-index:400;
+  max-width:min(92vw,520px);padding:12px 16px;border-radius:12px;
+  background:#111;border:1px solid var(--border);color:#fff;box-shadow:0 8px 30px rgba(0,0,0,.6);
+  font-family:'Barlow',sans-serif;font-size:13px;line-height:1.4;
+  opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;
+}
+.th-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.th-toast.err{border-color:var(--l)}
 
 /* Top band */
 .card-band{height:4px;width:100%}
@@ -350,6 +403,14 @@ main{padding:24px 22px;max-width:1440px;margin:0 auto}
 </div>
 <main id="main"></main>
 
+<div class="rival-modal-overlay" id="resultModalOverlay" onclick="if(event.target===this)closeResultModal()">
+  <div class="rival-modal-box">
+    <button type="button" class="rival-modal-close" onclick="closeResultModal()">✕</button>
+    <div id="resultModalBody"></div>
+  </div>
+</div>
+<div class="th-toast" id="thToast"></div>
+
 <div class="rival-modal-overlay" id="rivalModalOverlay">
   <div class="rival-modal-box">
     <button type="button" class="rival-modal-close" onclick="closeRivalModal()">✕</button>
@@ -488,7 +549,7 @@ function showRivalHistory(key){
     return `<div class="rival-hist-row">
       <span class="rival-hist-date">${h.day} ${MES[h.month_num]} ${h.year}</span>
       <span class="rival-hist-comp">${c.header||sLabel(h.sport,h.year)}</span>
-      <span class="rival-hist-badge ${r}">${r}</span>
+      <span class="rival-hist-badge ${r}">${r}${scoreText(matchKey(h))?' '+scoreText(matchKey(h)):''}</span>
     </div>`;
   }).join('');
   document.getElementById('rivalModalBody').innerHTML=`
@@ -518,6 +579,7 @@ function paintResult(key,newRes){
     if(newRes==='W') info.classList.add('win');
     if(newRes==='L') info.classList.add('loss');
   }
+  paintScore(key);
   if(typeof buildFormBar==='function') buildFormBar();
 }
 // Called by the Firebase module script (below) whenever the shared cloud
@@ -551,6 +613,215 @@ function cycleResult(key){
 }
 function getResult(key){
   return RESULTS_CACHE[key]||'none';
+}
+
+// ── MARCADOR (p.ej. 3-1) + SUMA AUTOMÁTICA A LAS FICHAS DE ESTADÍSTICAS ──
+// El marcador se guarda aparte del W/L (documento calendar/scores) para no
+// cambiar el formato de calendar/results, que ya usan otras partes.
+const SCORES_LS_KEY='th_scores_v1';
+let SCORES_CACHE=(function(){
+  try{ return JSON.parse(localStorage.getItem(SCORES_LS_KEY)||'{}')||{}; }
+  catch(e){ return {}; }
+})();
+function getScore(key){
+  const s=SCORES_CACHE[key];
+  return (s&&Number.isInteger(s.us)&&Number.isInteger(s.them))?s:null;
+}
+function scoreText(key){ const s=getScore(key); return s?`${s.us}-${s.them}`:''; }
+window.__thApplyRemoteScores=function(remote){
+  const prev=SCORES_CACHE;
+  SCORES_CACHE=remote||{};
+  try{ localStorage.setItem(SCORES_LS_KEY, JSON.stringify(SCORES_CACHE)); }catch(e){}
+  const keys=new Set([...Object.keys(prev),...Object.keys(SCORES_CACHE)]);
+  keys.forEach(k=>{ if(JSON.stringify(prev[k]||null)!==JSON.stringify(SCORES_CACHE[k]||null)) paintScore(k); });
+};
+function paintScore(key){
+  const pill=document.querySelector(`#card_${key} .score-pill`);
+  if(pill) pill.textContent=scoreText(key);
+}
+
+// Qué sección de Estadísticas (gameId en la base de datos) corresponde a
+// cada juego del calendario. Superliga/LES no suma: a partir de 2027 la
+// sección League of Legends es solo del roster de LEC. Los juegos sin rival
+// (Warzone, TFT, Apex...) no tienen badge de resultado, así que no aplican.
+const STATS_GAME_BY_SPORT={
+  LEC:'lol', CDL:'cod', VCT:'valorant', BRAWL:'brawlstars', R6:'r6',
+  MARVEL:'marvelrivals', EVA:'eva-2', FIFA:'fifa'
+};
+const DRAWS_ALLOWED=new Set(['R6']);
+function statsGameFor(e){ return STATS_GAME_BY_SPORT[e.sport]||null; }
+
+// Resultados que ya estaban marcados ANTES de activar la suma automática
+// (12/11/2026). Esos partidos ya se contaron a mano en las fichas, así que
+// nunca se suman aunque se les añada o cambie el marcador.
+const LEGACY_RESULT_KEYS=new Set(["2023_10_25_SL_bo3_vs_wizards","2023_10_31_SL_bo3_vs_case","2023_10_9_SL_bo3_vs_erfolg_esports","2023_11_6_SL_bo5_vs_??????","2023_1_16_SL_giants","2023_1_17_SL_rebels","2023_1_19_SL_ucam","2023_1_21_LEC_astralis","2023_1_22_LEC_vitality","2023_1_23_LEC_sk","2023_1_24_SL_barça","2023_1_26_SL_koi","2023_1_28_LEC_koi","2023_1_29_LEC_g2","2023_1_30_LEC_fnatic","2023_1_31_SL_guasones","2023_2_14_SL_giants","2023_2_16_SL_rebels","2023_2_21_SL_ucam","2023_2_23_SL_barça","2023_2_27_SL_koi","2023_2_28_SL_guasones","2023_2_2_SL_bisons","2023_2_4_LEC_excel","2023_2_5_LEC_team_bds","2023_2_6_LEC_mad_lions","2023_2_7_SL_fnatic_tq","2023_2_9_SL_movistar_riders","2023_3_11_LEC_g2","2023_3_12_LEC_koi","2023_3_13_LEC_bds","2023_3_18_LEC_fnatic","2023_3_19_LEC_excel","2023_3_20_LEC_mad_lions","2023_3_25_LEC_sk","2023_3_26_LEC_vitality","2023_3_27_LEC_astralis","2023_3_2_SL_bisons","2023_3_7_SL_fnatic_tq","2023_3_9_SL_movistar_riders","2023_4_11_SL_denizbank_i̇stanbul_wildcats","2023_4_11_SL_geekay_esports","2023_4_11_SL_zero_tenacity","2023_4_20_SL_team_go","2023_4_26_SL_use","2023_5_29_SL_movistar_riders","2023_5_30_SL_barça","2023_6_13_SL_ucam","2023_6_15_SL_bisons","2023_6_17_LEC_sk_gaming","2023_6_18_LEC_astralis","2023_6_19_LEC_vitality","2023_6_1_SL_guasones","2023_6_20_SL_rebels","2023_6_22_SL_giants","2023_6_24_LEC_excel","2023_6_25_LEC_koi","2023_6_26_LEC_bds","2023_6_27_SL_movistar_riders","2023_6_6_SL_koi","2023_6_8_SL_fnatic_tq","2023_7_11_SL_ucam","2023_7_13_SL_bisons","2023_7_1_LEC_mad_lions","2023_7_25_SL_ronda_1_vs_koi","2023_7_2_LEC_fnatic","2023_7_3_LEC_g2_esports","2023_7_4_SL_guasones","2023_7_8_SL_koi","2023_7_9_SL_fnatic_tq","2025_11_22_CDL_paris_gentlemates","2025_11_22_CDL_telluride_bush_gaming","2025_11_22_CDL_toronto_koi","2025_12_13_CDL_optic_texas","2025_12_14_CDL_cloud9_ny","2025_12_6_CDL_toronto_koi","2026_10_15_MARVEL_rad_esports","2026_10_16_MARVEL_hypertune","2026_10_17_BRAWL_ace_xero","2026_10_17_BRAWL_kds_esports","2026_10_17_MARVEL_shikigami","2026_10_18_BRAWL_kds_esports","2026_10_18_BRAWL_loud","2026_10_18_BRAWL_navi","2026_10_3_MARVEL_vengeful","2026_10_4_MARVEL_fyr_strays","2026_10_6_EVA_shifters","2026_10_7_SL_g2_nord","2026_1_16_CDL_vancouver_surge","2026_1_17_CDL_boston_breach","2026_1_17_LEC_navi","2026_1_18_LEC_shifters","2026_1_19_LEC_giantx","2026_1_22_VCT_navi","2026_1_24_BRAWL_hmble","2026_1_24_LEC_vitality","2026_1_25_CDL_paris_m8","2026_1_25_LEC_los_ratones","2026_1_26_LEC_g2","2026_1_28_VCT_ulf","2026_1_30_CDL_toronto_koi","2026_1_30_CDL_vancouver_surge","2026_1_30_VCT_giantx","2026_1_31_CDL_g2_minnesota","2026_1_31_LEC_sk","2026_1_9_CDL_carolina_royal_ravens","2026_2_12_VCT_team_liquid","2026_2_13_SL_barça_esports","2026_2_13_SL_lua_gaming","2026_2_14_CDL_faze_vegas","2026_2_15_BRAWL_fut_esports","2026_2_15_CDL_paris_m8","2026_2_15_SL_koi_fénix","2026_2_15_SL_mkf","2026_2_17_LEC_g2_esports","2026_2_1_LEC_karmine_corp_blue","2026_2_21_LEC_giantx","2026_2_22_CDL_optic_texas","2026_2_28_CDL_toronto_koi","2026_2_2_LEC_mkoi","2026_2_2_R6_fearx","2026_2_4_R6_nip","2026_2_5_R6_m80","2026_2_5_VCT_karmine_corp","2026_2_6_R6_weibo_gaming","2026_2_6_VCT_navi","2026_2_7_LEC_fnatic","2026_2_8_BRAWL_dontfinxso","2026_2_8_BRAWL_navi","2026_2_8_BRAWL_re_zero","2026_2_8_LEC_karmine_corp","2026_2_8_R6_furia","2026_2_9_R6_oxygen_esports","2026_3_10_SL_nightbirds","2026_3_12_R6_giggioletti","2026_3_12_R6_order_of_the_shield","2026_3_12_SL_arctic_pandas","2026_3_13_CDL_riyadh_falcons","2026_3_13_R6_dyavoli","2026_3_13_R6_team_secret_academy","2026_3_14_SL_arctic_pandas","2026_3_15_BRAWL_fut_esports","2026_3_15_BRAWL_navi","2026_3_15_CDL_vancouver_surge","2026_3_19_BRAWL_cjf","2026_3_20_BRAWL_big_talents","2026_3_20_BRAWL_only_realm","2026_3_20_BRAWL_sk_gaming","2026_3_21_CDL_carolina_royal_ravens","2026_3_22_CDL_boston_breach","2026_3_23_SL_use","2026_3_27_CDL_paris_m8","2026_3_27_CDL_toronto_koi","2026_3_27_MARVEL_team_peps","2026_3_29_LEC_sk_gaming","2026_3_29_MARVEL_pulsar","2026_3_2_CDL_cloud9_ny","2026_3_30_LEC_vitality","2026_3_30_R6_shifters","2026_3_31_R6_fnatic","2026_3_5_R6_al_ula","2026_3_6_R6_giggioletti","2026_3_7_CDL_g2_minnesota","2026_3_7_R6_pannuhuone","2026_3_8_BRAWL_gots","2026_3_8_BRAWL_kebap","2026_3_8_BRAWL_novo_esports","2026_3_8_CDL_los_angeles_thieves","2026_4_11_LEC_navi","2026_4_12_BRAWL_madrid","2026_4_12_LEC_karmine_corp","2026_4_14_EVA_og_esports","2026_4_15_SL_ucam","2026_4_16_MARVEL_vision_esports","2026_4_16_VCT_karmine_corp","2026_4_17_CDL_los_angeles_thieves","2026_4_17_MARVEL_shikigami","2026_4_18_MARVEL_navi","2026_4_19_LEC_movistar_koi","2026_4_19_MARVEL_navi","2026_4_19_MARVEL_shikigami","2026_4_23_SL_giantx","2026_4_24_CDL_boston_breach","2026_4_24_VCT_gentlemates","2026_4_25_CDL_gentlemates","2026_4_26_CDL_faze_vegas","2026_4_27_CDL_la_thieves","2026_4_28_EVA_giantx","2026_4_28_LEC_sk_gaming","2026_4_29_SL_falke_esports","2026_4_29_VCT_fut","2026_4_30_LEC_giantx","2026_4_3_MARVEL_navi","2026_4_3_VCT_navi","2026_4_4_LEC_g2","2026_4_4_MARVEL_alter_esports","2026_4_5_BRAWL_dagestan","2026_4_5_BRAWL_dontfinxso","2026_4_5_BRAWL_kebap","2026_4_5_MARVEL_shikigami","2026_4_6_LEC_giantx","2026_4_6_R6_g2_esports","2026_4_7_R6_virtus.pro","2026_4_9_SL_lua_gaming","2026_4_9_VCT_team_liquid","2026_5_10_BRAWL_eternal_esports","2026_5_10_BRAWL_hmble","2026_5_10_BRAWL_only_realm","2026_5_10_CDL_paris_m8","2026_5_10_VCT_fnatic","2026_5_12_EVA_g2_esports","2026_5_13_SL_universitat_de_barcelona","2026_5_15_CDL_carolina_royal_ravens","2026_5_15_CDL_toronto_koi","2026_5_15_VCT_eternal_fire","2026_5_16_CDL_carolina_royal_ravens","2026_5_16_CDL_optic_texas","2026_5_16_CDL_paris_m8","2026_5_16_VCT_fut_esports","2026_5_17_VCT_team_vitality","2026_5_20_SL_barça_esports","2026_5_22_MARVEL_shikigami","2026_5_26_EVA_solary","2026_5_29_MARVEL_reason_gaming","2026_5_2_CDL_faze_vegas","2026_5_2_LEC_fnatic","2026_5_30_MARVEL_crownfall","2026_5_31_CDL_optic_texas","2026_5_31_CDL_riyadh_falcons","2026_5_3_CDL_g2_minnesota","2026_5_3_LEC_shifters","2026_5_7_SL_movistar_koi_fénix","2026_5_7_VCT_eternal_fire","2026_5_8_CDL_riyadh_falcons","2026_5_9_VCT_bbl","2026_6_10_SL_karmine_corp_blue","2026_6_11_SL_forsaken","2026_6_12_VCT_team_vitality","2026_6_13_SL_eintracht_spandau","2026_6_14_CDL_faze_vegas","2026_6_14_VCT_leviatan","2026_6_15_R6_fnatic","2026_6_16_R6_geekay_esports","2026_6_20_CDL_cloud9_ny","2026_6_21_CDL_vancouver_surge","2026_6_22_R6_virtus.pro","2026_6_23_EVA_sk_gaming","2026_6_23_R6_shifters","2026_6_24_R6_falcons","2026_6_26_CDL_carolina_royal_ravens","2026_6_27_CDL_paris_m8","2026_6_30_R6_twisted_minds","2026_6_3_SL_barça_esports","2026_6_5_MARVEL_the_chosen_ones","2026_6_5_SL_ucam_esports","2026_6_6_CDL_vancouver_surge","2026_6_6_MARVEL_fyr_strays","2026_6_7_BRAWL_era_talents","2026_6_7_BRAWL_fenris_gaming","2026_6_7_BRAWL_kumalazawesta","2026_6_7_BRAWL_totem_esports","2026_6_8_R6_team_secret","2026_6_9_EVA_team_vitality","2026_6_9_R6_g2_esports","2026_7_12_BRAWL_novo","2026_7_14_EVA_og_esports","2026_7_14_SL_ucam_esports","2026_7_16_BRAWL_sk_gaming","2026_7_16_CDL_optic_texas","2026_7_16_SL_barça_esports","2026_7_17_CDL_toronto_koi","2026_7_18_CDL_riyadh_falcons","2026_7_18_VCT_team_liquid","2026_7_21_EVA_solary","2026_7_23_BRAWL_kumalazawesta","2026_7_23_SL_giantx_itero","2026_7_23_VCT_eternal_fire","2026_7_26_VCT_karmine_corp","2026_7_28_EVA_sk_gaming","2026_7_29_SL_lua_gaming","2026_7_2_BRAWL_fut","2026_7_2_MARVEL_pulsar_esports","2026_7_30_BRAWL_talents_lab","2026_7_30_SL_falke_esports","2026_7_31_LEC_vitality","2026_7_31_VCT_giantx","2026_7_3_MARVEL_virtuspro","2026_7_3_VCT_all_gamers","2026_7_4_MARVEL_rad","2026_7_4_MARVEL_shikigami","2026_7_5_BRAWL_hmble","2026_7_5_BRAWL_madrid","2026_7_5_BRAWL_palote","2026_7_5_BRAWL_sk_gaming","2026_7_5_VCT_mibr","2026_7_7_EVA_shifters","2026_7_9_BRAWL_aql_esports","2026_7_9_VCT_bbl","2026_8_12_VCT_navi","2026_8_13_SL_movistar_koi_fénix","2026_8_14_VCT_eintracht_frankfurt","2026_8_17_LEC_navi","2026_8_19_SL_ucam_esports","2026_8_20_SL_movistar_koi_fénix","2026_8_21_LEC_sk_gaming","2026_8_23_LEC_giantx","2026_8_28_LEC_shifters","2026_8_2_BRAWL_pressured_coals","2026_8_2_BRAWL_reverso_hive","2026_8_2_BRAWL_talentslab","2026_8_2_BRAWL_togrubi","2026_8_2_VCT_fnatic","2026_8_30_LEC_movistar_koi","2026_8_3_LEC_karmine_corp","2026_8_6_BRAWL_hmble","2026_8_6_CDL_team_falcons","2026_8_6_CDL_vancouver_surge","2026_8_6_SL_universitat_de_barcelona","2026_8_7_CDL_team_war","2026_8_7_LEC_fnatic","2026_8_8_CDL_g2_esports","2026_8_9_BRAWL_hmble","2026_8_9_BRAWL_navi","2026_8_9_CDL_optic_gaming","2026_8_9_CDL_team_falcons","2026_8_9_LEC_g2_esports","2026_8_9_VCT_fire_flux_esports","2026_9_14_R6_geekay_esports","2026_9_15_R6_twisted_minds","2026_9_18_MARVEL_navi","2026_9_19_MARVEL_crownfall","2026_9_21_R6_falcons_esports","2026_9_22_EVA_g2_esports","2026_9_22_R6_g2_esports","2026_9_26_MARVEL_pulsar","2026_9_26_SL_esuba","2026_9_27_SL_senshi_esports","2026_9_28_R6_rebels","2026_9_28_SL_valerion","2026_9_29_EVA_giantx","2026_9_29_R6_shifters","2026_9_29_SL_karmine_corp_blue","2026_9_30_R6_fnatic","2026_9_30_SL_nightbirds","2026_9_7_R6_virtus.pro","2026_9_8_EVA_team_vitality","2026_9_8_R6_team_secret"]);
+
+// Nombre de la competición tal y como se quiere en la nota de Estadísticas:
+// "Actualizado hasta partido vs Rival - Nombre de la competición (incluido)"
+function competitionName(e){
+  const p=parseCard(e);
+  if(e.sport==='CDL'){
+    const t=p.title||'';
+    if(/^(qualifier|major|minor)\b/i.test(t)) return 'CDL '+t;
+    return t||'CDL';
+  }
+  let name=(p.header||sLabel(e.sport,e.year)).replace(/\s*·\s*/g,' ').trim();
+  if(p.title && /playoff|final/i.test(p.title)) name+=' '+p.title;
+  return name;
+}
+function matchDateISO(e){ return `${e.year}-${pad2(e.month_num)}-${pad2(e.day)}`; }
+
+// Estado de un partido respecto a las estadísticas (para el aviso del editor)
+function statsStatus(e, res, score){
+  const gameId=statsGameFor(e);
+  if(!gameId) return {apply:false, cls:'', msg:'Este juego no está vinculado a ninguna sección de Estadísticas: el resultado solo se guarda en el calendario.'};
+  if(LEGACY_RESULT_KEYS.has(matchKey(e))) return {apply:false, cls:'', msg:'Resultado registrado antes de activar la suma automática: no se suma a las fichas (ya estaba contado a mano).'};
+  if(res==='none') return {apply:false, cls:'', msg:'Marca el resultado y el marcador. Al guardar, se sumará automáticamente a las fichas del roster activo ese día.'};
+  if(!score) return {apply:false, cls:'warn', msg:'Falta el marcador: el partido no se sumará a las fichas hasta que lo añadas.'};
+  return {apply:true, cls:'ok', gameId, msg:`Al guardar se sumará a cada jugador y entrenador activo el ${e.day}/${e.month_num}/${e.year}: +1 partido, +${score.us+score.them} mapa${score.us+score.them===1?'':'s'} y +1 ${res==='W'?'victoria':res==='L'?'derrota':'empate'}.`};
+}
+
+// ── Editor de resultado ──
+let RM=null; // {key, res, us, them}
+function openResultModal(key){
+  const e=EVENTS_BY_KEY.get(key);
+  if(!e) return;
+  const sc=getScore(key);
+  RM={key, res:getResult(key), us:sc?String(sc.us):'', them:sc?String(sc.them):''};
+  renderResultModal();
+  document.getElementById('resultModalOverlay').classList.add('open');
+}
+function closeResultModal(){
+  document.getElementById('resultModalOverlay').classList.remove('open');
+  RM=null;
+}
+function rmParsedScore(){
+  if(RM.us===''&&RM.them==='') return {score:null, error:null};
+  const us=Number(RM.us), them=Number(RM.them);
+  if(RM.us===''||RM.them===''||!Number.isInteger(us)||!Number.isInteger(them)||us<0||them<0)
+    return {score:null, error:'Completa los dos lados del marcador con números enteros (o déjalo vacío).'};
+  return {score:{us,them}, error:null};
+}
+function rmValidate(){
+  const e=EVENTS_BY_KEY.get(RM.key);
+  const {score,error}=rmParsedScore();
+  if(error) return {ok:false, cls:'err', msg:error};
+  if(score){
+    const derived=score.us>score.them?'W':score.us<score.them?'L':'D';
+    if(derived==='D'&&!DRAWS_ALLOWED.has(e.sport)) return {ok:false, cls:'err', msg:'Este juego no admite empates: revisa el marcador.'};
+    if(RM.res!=='none'&&RM.res!==derived) return {ok:false, cls:'err', msg:`El marcador ${score.us}-${score.them} no cuadra con el resultado marcado.`};
+  }
+  const st=statsStatus(e, RM.res, score);
+  return {ok:true, cls:st.cls, msg:st.msg};
+}
+function renderResultModal(){
+  const e=EVENTS_BY_KEY.get(RM.key);
+  const opp=(e.opponent||'TBD').replace(/^vs\s+/i,'');
+  const p=parseCard(e);
+  const btn=(r,label)=>`<button type="button" class="${r}${RM.res===r?' on':''}" onclick="rmSetRes('${r}')">${label}</button>`;
+  document.getElementById('resultModalBody').innerHTML=`
+    <div class="rm-head">${leftName(e.sport,e.competition)} vs ${opp}</div>
+    <div class="rm-sub">${p.header||sLabel(e.sport,e.year)}${p.title?' · '+p.title:''} · ${e.day} ${MES[e.month_num]} ${e.year}${e.format?' · '+e.format:''}</div>
+    <div class="rm-label">Resultado</div>
+    <div class="rm-res">${btn('W','Victoria')}${btn('L','Derrota')}${DRAWS_ALLOWED.has(e.sport)?btn('D','Empate'):''}</div>
+    <div class="rm-label">Marcador (mapas)</div>
+    <div class="rm-score">
+      <div><label>${leftName(e.sport,e.competition)}</label><input type="number" min="0" step="1" inputmode="numeric" id="rmUs" value="${RM.us}" oninput="rmSetScore()"></div>
+      <div class="rm-dash">-</div>
+      <div><label>${opp}</label><input type="number" min="0" step="1" inputmode="numeric" id="rmThem" value="${RM.them}" oninput="rmSetScore()"></div>
+    </div>
+    <div class="rm-info" id="rmInfo"></div>
+    <div class="rm-actions">
+      <button type="button" class="rm-btn-clear" onclick="rmClear()">Borrar resultado</button>
+      <button type="button" class="rm-btn-save" id="rmSave" onclick="rmSave()">Guardar</button>
+    </div>`;
+  rmRefreshInfo();
+}
+function rmRefreshInfo(){
+  const v=rmValidate();
+  const info=document.getElementById('rmInfo');
+  info.className='rm-info'+(v.cls?' '+v.cls:'');
+  info.textContent=v.msg;
+  document.getElementById('rmSave').disabled=!v.ok;
+}
+function rmSetRes(r){
+  RM.res=(RM.res===r)?'none':r;
+  RM.us=document.getElementById('rmUs').value; RM.them=document.getElementById('rmThem').value;
+  renderResultModal();
+}
+function rmSetScore(){
+  RM.us=document.getElementById('rmUs').value.trim();
+  RM.them=document.getElementById('rmThem').value.trim();
+  // Con el marcador completo, el resultado se deduce solo (3-1 → Victoria)
+  const {score}=rmParsedScore();
+  if(score){
+    const derived=score.us>score.them?'W':score.us<score.them?'L':'D';
+    if(RM.res!==derived){
+      RM.res=derived;
+      document.querySelectorAll('.rm-res button').forEach(b=>b.classList.toggle('on', b.classList.contains(derived)));
+    }
+  }
+  rmRefreshInfo();
+}
+function rmClear(){
+  const key=RM.key;
+  closeResultModal();
+  saveMatchResult(key,'none',null);
+}
+function rmSave(){
+  const v=rmValidate();
+  if(!v.ok) return;
+  const key=RM.key, res=RM.res, {score}=rmParsedScore();
+  closeResultModal();
+  saveMatchResult(key,res,score);
+}
+
+let toastTimer=null;
+function showToast(msg, isErr){
+  const t=document.getElementById('thToast');
+  if(!t) return;
+  t.textContent=msg;
+  t.className='th-toast show'+(isErr?' err':'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{ t.className='th-toast'+(isErr?' err':''); }, isErr?9000:5500);
+}
+
+// Guarda W/L + marcador (calendario) y sincroniza las fichas de Estadísticas
+function saveMatchResult(key, res, score){
+  const e=EVENTS_BY_KEY.get(key);
+  if(!e) return;
+  RESULTS_CACHE[key]=res;
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(RESULTS_CACHE)); }catch(err){}
+  if(typeof window.__thWriteResult==='function') window.__thWriteResult(key, res);
+  if(score) SCORES_CACHE[key]={us:score.us, them:score.them}; else delete SCORES_CACHE[key];
+  try{ localStorage.setItem(SCORES_LS_KEY, JSON.stringify(SCORES_CACHE)); }catch(err){}
+  if(typeof window.__thWriteScore==='function') window.__thWriteScore(key, score?{us:score.us, them:score.them}:null);
+  paintResult(key, res);
+  paintScore(key);
+
+  const gameId=statsGameFor(e);
+  if(!gameId || LEGACY_RESULT_KEYS.has(key)) return;
+  if(typeof window.__thSyncStats!=='function'){
+    showToast('⚠️ No se pudo conectar con Estadísticas. Vuelve a guardar el resultado en unos segundos.', true);
+    return;
+  }
+  const st=statsStatus(e, res, score);
+  window.__thSyncStats({
+    key, gameId,
+    apply: st.apply,
+    result: res, us: score?score.us:0, them: score?score.them:0,
+    dateISO: matchDateISO(e),
+    sortKey: matchDateISO(e)+'T'+(e.time||'00:00'),
+    opponent: (e.opponent||'TBD').replace(/^vs\s+/i,''),
+    competition: competitionName(e)
+  }).then(out=>{
+    if(!out||!out.changed) return;
+    if(out.applied) showToast(`✅ Estadísticas actualizadas: ${out.members} ficha${out.members===1?'':'s'} del roster activo (${res==='W'?'victoria':res==='L'?'derrota':'empate'} ${score.us}-${score.them}).`);
+    else showToast('↩️ Partido retirado de las estadísticas de las fichas.');
+  }).catch(err=>{
+    console.error('Error sumando a Estadísticas:', err);
+    showToast('⚠️ El resultado se guardó, pero no se pudo actualizar Estadísticas. Vuelve a abrir el partido y pulsa Guardar.', true);
+  });
 }
 
 // ── CONFIG ────────────────────────────────────────────────────────────
@@ -1155,7 +1426,7 @@ function makeCard(e){
 
   // Result badge (only on past matches)
   const badge=past
-    ?`<div class="result-badge ${resClass}" onclick="onResultClick('${key}',this)" title="Clic para marcar resultado">${resLabel}</div>`
+    ?`<div class="result-badge ${resClass}" onclick="onResultClick('${key}',this)" title="Clic para marcar resultado y marcador">${resLabel}</div><div class="score-pill" onclick="onResultClick('${key}')">${scoreText(key)}</div>`
     :'';
 
   // Info stripe class
@@ -1164,7 +1435,7 @@ function makeCard(e){
   const fmtH=e.format?`<div class="card-sub" style="font-size:11px;font-weight:600;color:#888;letter-spacing:.5px">${e.format}</div>`:'';  const titleH=inf.title?`<div class="card-title">${inf.title}</div>`:'';
   const weekH=inf.week?`<div class="card-sub">${inf.week}</div>`:'';
   const subH=inf.subtitle?`<div class="card-sub">${inf.subtitle}</div>`:'';
-  const editH=past?`<div class="edit-hint" onclick="onResultClick('${key}',this.closest('.card').querySelector('.result-badge'))">← Clic en el badge para marcar W / L</div>`:'';
+  const editH=past?`<div class="edit-hint" onclick="onResultClick('${key}',this.closest('.card').querySelector('.result-badge'))">← Clic en el badge para marcar resultado y marcador</div>`:'';
 
   return`<div class="card${past?' past':''}" id="card_${key}">
     <div class="card-band" style="background:${col}"></div>
@@ -1198,6 +1469,9 @@ function makeCard(e){
 }
 
 function onResultClick(key, badgeEl){
+  openResultModal(key);
+}
+function onResultClickLegacyCycle(key, badgeEl){
   const newRes=cycleResult(key);
   // Update badge
   const badge=typeof badgeEl==='string'?document.querySelector(`#card_${key} .result-badge`):badgeEl;
@@ -1463,7 +1737,8 @@ function goToToday() {
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
   import {
-    getFirestore, doc, setDoc, onSnapshot
+    getFirestore, doc, setDoc, onSnapshot, collection, query, where, getDocs,
+    runTransaction, increment, deleteField
   } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -1505,6 +1780,153 @@ function goToToday() {
     setDoc(resultsRef, { data: { [key]: value } }, { merge: true }).catch((err) => {
       console.error("No se pudo guardar el resultado en la nube:", err);
     });
+  };
+
+  // ── Marcadores (3-1, 2-0...) ─────────────────────────────────────────
+  const scoresRef = doc(db, "calendar", "scores");
+  onSnapshot(scoresRef, (snap) => {
+    const data = snap.data();
+    if (typeof window.__thApplyRemoteScores === 'function') {
+      window.__thApplyRemoteScores((data && data.data) || {});
+    }
+  }, (err) => console.error("Error de sincronización con la nube (marcadores):", err));
+  window.__thWriteScore = function (key, value) {
+    setDoc(scoresRef, { data: { [key]: value === null ? deleteField() : value } }, { merge: true })
+      .catch((err) => console.error("No se pudo guardar el marcador en la nube:", err));
+  };
+
+  // ── Suma automática a las fichas de Estadísticas ─────────────────────
+  // Cada partido sumado deja un "recibo" en calendar_stats_applied/{partido}
+  // con exactamente qué se sumó y a quién. Así, si luego se corrige el
+  // marcador, se cambia W↔L o se borra el resultado, primero se resta lo
+  // que se sumó la otra vez y luego se suma lo nuevo: nunca se duplica.
+  const STAT_FIELDS = ["matches", "maps", "wins", "losses", "draws"];
+  const ledgerId = (key) => key.replace(/\//g, "_");
+
+  // ¿La etapa (stint) cubre ese día? Entrada y salida incluidas. Sin fecha
+  // de entrada no se puede comprobar, así que no cuenta.
+  function covers(stint, iso) {
+    if (!stint || !stint.joined) return false;
+    if (iso < stint.joined) return false;
+    if (stint.left && stint.left !== "TBD" && iso > stint.left) return false;
+    return true;
+  }
+  function stintsOf(p) {
+    if (Array.isArray(p.stints) && p.stints.length) return p.stints;
+    return [{ role: "player", joined: p.joined || null, left: p.left || null }];
+  }
+  async function rosterFor(gameId, iso) {
+    const snap = await getDocs(query(collection(db, "players"), where("gameId", "==", gameId)));
+    const members = [];
+    snap.forEach((d) => {
+      const p = d.data() || {};
+      const stints = stintsOf(p);
+      for (const role of ["player", "coach"]) {
+        if (stints.some((s) => ((s && s.role) || "player") === role && covers(s, iso))) {
+          members.push({ id: d.id, role, nickname: p.nickname || "" });
+        }
+      }
+    });
+    members.sort((a, b) => (a.id + a.role).localeCompare(b.id + b.role));
+    return members;
+  }
+  function sameContribution(a, b) {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    if (a.gameId !== b.gameId || a.result !== b.result || a.maps !== b.maps) return false;
+    const sig = (c) => (c.members || []).map((m) => m.id + "|" + m.role).sort().join(",");
+    return sig(a) === sig(b);
+  }
+  function statsFromDoc(data, field) {
+    // Fichas antiguas sin el mapa playerStats/coachStats (datos en campos planos)
+    if (data[field] && typeof data[field] === "object") return null;
+    if (field === "playerStats") {
+      return { matches: data.matches || 0, maps: data.maps || 0, wins: data.wins || 0, losses: data.losses || 0, draws: 0 };
+    }
+    return { matches: 0, maps: 0, wins: 0, losses: 0, draws: 0 };
+  }
+
+  async function refreshUpdateNote(gameId) {
+    const snap = await getDocs(query(collection(db, "calendar_stats_applied"), where("gameId", "==", gameId)));
+    let latest = null;
+    snap.forEach((d) => {
+      const x = d.data();
+      if (!latest || (x.sortKey || "") > (latest.sortKey || "")) latest = x;
+    });
+    if (!latest) return;
+    const note = `Actualizado hasta partido vs ${latest.opponent} - ${latest.competition} (incluido)`;
+    await setDoc(doc(db, "games", gameId), { updateNote: note }, { merge: true });
+  }
+
+  window.__thSyncStats = async function (info) {
+    const ledgerRef = doc(db, "calendar_stats_applied", ledgerId(info.key));
+    let desired = null;
+    if (info.apply) {
+      const members = await rosterFor(info.gameId, info.dateISO);
+      desired = {
+        key: info.key, gameId: info.gameId, result: info.result,
+        us: info.us, them: info.them, maps: info.us + info.them,
+        date: info.dateISO, sortKey: info.sortKey,
+        opponent: info.opponent, competition: info.competition,
+        members
+      };
+    }
+    const out = await runTransaction(db, async (tx) => {
+      const cur = await tx.get(ledgerRef);
+      const old = cur.exists() ? cur.data() : null;
+      if (sameContribution(old, desired)) return { changed: false };
+
+      const deltas = new Map();
+      const add = (c, sign) => {
+        if (!c) return;
+        const w = c.result === "W" ? 1 : 0, l = c.result === "L" ? 1 : 0, dr = c.result === "D" ? 1 : 0;
+        for (const m of c.members || []) {
+          const k = m.id + "|" + m.role;
+          const d = deltas.get(k) || { matches: 0, maps: 0, wins: 0, losses: 0, draws: 0 };
+          d.matches += sign; d.maps += sign * (c.maps || 0);
+          d.wins += sign * w; d.losses += sign * l; d.draws += sign * dr;
+          deltas.set(k, d);
+        }
+      };
+      add(old, -1);
+      add(desired, +1);
+
+      // Todas las lecturas antes de cualquier escritura (regla de Firestore)
+      const ids = [...new Set([...deltas.keys()].map((k) => k.split("|")[0]))];
+      const snaps = new Map();
+      for (const id of ids) snaps.set(id, await tx.get(doc(db, "players", id)));
+
+      const updates = new Map();
+      for (const [k, d] of deltas) {
+        const [id, role] = k.split("|");
+        const snapP = snaps.get(id);
+        if (!snapP.exists()) continue; // ficha borrada: nada que sumar/restar
+        const field = role === "coach" ? "coachStats" : "playerStats";
+        const upd = updates.get(id) || {};
+        const legacyBase = statsFromDoc(snapP.data() || {}, field);
+        if (legacyBase) {
+          const full = {};
+          for (const f of STAT_FIELDS) full[f] = Math.max(0, (legacyBase[f] || 0) + d[f]);
+          upd[field] = full;
+        } else {
+          for (const f of STAT_FIELDS) if (d[f]) upd[`${field}.${f}`] = increment(d[f]);
+        }
+        updates.set(id, upd);
+      }
+      for (const [id, upd] of updates) {
+        if (Object.keys(upd).length) tx.update(doc(db, "players", id), upd);
+      }
+      if (desired) tx.set(ledgerRef, { ...desired, appliedAt: Date.now() });
+      else if (old) tx.delete(ledgerRef);
+      return { changed: true, applied: !!desired, members: desired ? desired.members.length : 0, oldGameId: old && old.gameId };
+    });
+    if (out.changed) {
+      try {
+        await refreshUpdateNote(info.gameId);
+        if (out.oldGameId && out.oldGameId !== info.gameId) await refreshUpdateNote(out.oldGameId);
+      } catch (err) { console.error("No se pudo actualizar la nota de Estadísticas:", err); }
+    }
+    return out;
   };
 </script>
 </body>
