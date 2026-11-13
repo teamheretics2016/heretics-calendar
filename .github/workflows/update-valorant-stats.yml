@@ -6,8 +6,12 @@ name: Actualizar estadísticas de Valorant (VLR.gg)
 # ejecutarlo a mano con la casilla "seed" marcada — ver instrucciones en
 # scripts/update_valorant_stats.py.
 on:
-  schedule:
-    - cron: "17 9 * * *" # todos los días a las 09:17 UTC
+  # Ejecución diaria DESACTIVADA (12/11/2026): Valorant ya se suma a las
+  # fichas automáticamente al registrar el resultado + marcador en el
+  # calendario (igual que el resto de juegos). Si siguiera activa, cada
+  # partido de Valorant contaría dos veces. Se puede seguir lanzando a mano.
+  # schedule:
+  #   - cron: "17 9 * * *" # todos los días a las 09:17 UTC
   workflow_dispatch:
     inputs:
       seed:
