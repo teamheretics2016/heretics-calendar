@@ -1815,6 +1815,14 @@ function goToToday() {
     if (Array.isArray(p.stints) && p.stints.length) return p.stints;
     return [{ role: "player", joined: p.joined || null, left: p.left || null }];
   }
+  // En LoL las etapas pueden ser de LEC, Superliga o LES (ver
+  // estadisticas.html). Los partidos de LEC solo cuentan para las etapas de
+  // LEC (o sin equipo indicado, que equivalen al equipo principal).
+  const MAIN_TEAM_BY_GAME = { lol: "LEC" };
+  function stintIsMainTeam(s, gameId) {
+    const main = MAIN_TEAM_BY_GAME[gameId];
+    return !main || !s.team || s.team === main;
+  }
   async function rosterFor(gameId, iso) {
     const snap = await getDocs(query(collection(db, "players"), where("gameId", "==", gameId)));
     const members = [];
@@ -1822,7 +1830,7 @@ function goToToday() {
       const p = d.data() || {};
       const stints = stintsOf(p);
       for (const role of ["player", "coach"]) {
-        if (stints.some((s) => ((s && s.role) || "player") === role && covers(s, iso))) {
+        if (stints.some((s) => ((s && s.role) || "player") === role && stintIsMainTeam(s, gameId) && covers(s, iso))) {
           members.push({ id: d.id, role, nickname: p.nickname || "" });
         }
       }
