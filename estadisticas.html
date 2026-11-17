@@ -845,6 +845,22 @@
   .p1-card:hover .p1-stat-hover{ opacity:1; transform:none; }
   .p1-stat-num{ font-size:34px; font-weight:900; color: var(--gold-bright); line-height:1; }
   .p1-stat-label{ font-size:10.5px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color: var(--text-dim); margin-top:3px; }
+  /* Desglose por etapa encima del total (solo si ha tenido varias etapas) */
+  /* El desglose va "flotando" encima del número (no ensancha la columna),
+     así puede usar todo el ancho de la tarjeta. Por defecto en fila; si no
+     cabe (ver fitP1Breakdowns), pasa a uno debajo de otro. */
+  .p1-stat-hover{ position:relative; }
+  .p1-bd{ position:absolute; right:0; bottom:100%; margin-bottom:6px; display:flex; justify-content:flex-end; flex-wrap:nowrap; gap:3px; white-space:nowrap; }
+  .p1-bd.stack{ flex-direction:column; align-items:flex-end; gap:3px; }
+  .p1-bd-item{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:11.5px; font-weight:800; color:#fff; line-height:1;
+    background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.14);
+    padding:2px 5px 2px 2px; border-radius:999px;
+  }
+  .p1-bd-item .team-logo-chip{ width:18px; height:18px; box-shadow:none; }
+  .p1-bd-item .team-logo-chip img{ width:12px; height:12px; }
+  .p1-bd-ico{ width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; }
 
   .grid .add-card{ aspect-ratio: 3 / 4; min-height:0; }
 
@@ -1152,6 +1168,8 @@
       <button type="button" class="btn-add-stint" id="addStintBtn">+ Añadir etapa</button>
     </div>
 
+    <div id="statsGroups">
+    <div class="stats-group" id="fPlayerGroup" data-block="player|">
     <label class="stats-group-label" id="fPlayerStatsLabel">🎮 Estadísticas como jugador</label>
     <div class="form-row2">
       <div class="form-field">
@@ -1178,6 +1196,8 @@
       <input type="number" id="fDraws" min="0" value="0">
     </div>
 
+    </div>
+    <div class="stats-group" id="fCoachGroup" data-block="coach|">
     <label class="stats-group-label" id="fCoachStatsLabel">🧑‍🏫 Estadísticas como entrenador</label>
     <div class="form-row2">
       <div class="form-field">
@@ -1204,9 +1224,12 @@
       <input type="number" id="fCDraws" min="0" value="0">
     </div>
 
-    <!-- Estadísticas de otras etapas/equipos (p.ej. Superliga o LES en LoL).
-         Se generan solas según las etapas que tenga la ficha. -->
-    <div id="teamStatsEditor"></div>
+    </div>
+    <!-- Estadísticas de otras etapas/equipos (p.ej. Superliga o LES en LoL):
+         se generan solas. Todos los bloques (también los dos de arriba) se
+         muestran solo si la ficha tiene esa etapa y se ordenan por fecha. -->
+    <div id="teamStatsEditor" style="display:none"></div>
+    </div>
 
     <div class="form-field">
       <label for="fTitles">Torneos ganados (separados por comas)</label>
@@ -1439,7 +1462,7 @@
   // (sin repetir). Los "creadores" no tienen estadísticas de partidos.
   function statBlocks(p){
     const seen = new Set(), out = [];
-    (p.stints || []).forEach((s) => {
+    [...(p.stints || [])].sort((a, b) => (a.joined || "9999") < (b.joined || "9999") ? -1 : 1).forEach((s) => {
       const role = normalizeRole(s.role);
       if (role === "founder") return;
       const team = stintTeam(s, p.gameId);
@@ -2000,6 +2023,7 @@
       s.classList.toggle("active", s.id === `sec-${id}`);
     });
     updatePositionFilterVisibility();
+    requestAnimationFrame(() => fitP1Breakdowns(document.getElementById(`sec-${id}`)));
   }
 
   function slugify(name){
@@ -2213,6 +2237,7 @@
       visible.forEach((p) => grid.appendChild(renderLevel1Card(p, gameId)));
     }
     grid.appendChild(renderAddCard(gameId));
+    requestAnimationFrame(() => fitP1Breakdowns(grid));
   }
 
   function renderAddCard(gameId){
@@ -2304,6 +2329,7 @@
     const removeBtn = row.querySelector(".stint-remove");
 
     roleSel.value = stint ? normalizeRole(stint.role) : "player";
+    row.querySelector(".stint-joined").addEventListener("change", () => renderTeamStatsEditor());
     const teamSel = row.querySelector(".stint-team");
     if (teamSel){
       teamSel.value = (stint && stint.team && teamMeta(formState.gameId, stint.team)) ? stint.team : mainTeamId(formState.gameId);
@@ -2311,6 +2337,8 @@
       syncTeamVis();
       roleSel.addEventListener("change", () => { syncTeamVis(); renderTeamStatsEditor(); });
       teamSel.addEventListener("change", renderTeamStatsEditor);
+    } else {
+      roleSel.addEventListener("change", () => renderTeamStatsEditor());
     }
     joinedInput.value = stint && stint.joined ? stint.joined : "";
     const ended = !!(stint && stint.left);
@@ -2346,7 +2374,7 @@
   const teamStatsEditorEl = document.getElementById("teamStatsEditor");
   function readTeamStatsInputs(){
     if (!formState.teamStatsDraft) formState.teamStatsDraft = {};
-    teamStatsEditorEl.querySelectorAll("[data-ts-team]").forEach((inp) => {
+    document.getElementById("statsGroups").querySelectorAll("[data-ts-team]").forEach((inp) => {
       const t = inp.dataset.tsTeam, r = inp.dataset.tsRole, k = inp.dataset.tsKey;
       formState.teamStatsDraft[t] = formState.teamStatsDraft[t] || {};
       formState.teamStatsDraft[t][r] = formState.teamStatsDraft[t][r] || zeroStats();
@@ -2376,16 +2404,41 @@
     document.getElementById("fCoachStatsLabel").textContent = "🧑‍🏫 Estadísticas como entrenador" + (teams ? " · " + mainLabel : "");
     const game = gamesById.get(gameId);
     const allowDraws = !!(game && game.allowDraws);
-    teamStatsEditorEl.innerHTML = currentExtraBlocks().map(({ role, team }) => {
+    const groupsEl = document.getElementById("statsGroups");
+    groupsEl.querySelectorAll(".ts-generated").forEach((el) => el.remove());
+    const generatedHtml = currentExtraBlocks().map(({ role, team }) => {
       const m = teamMeta(gameId, team);
       const v = cleanStats(((formState.teamStatsDraft || {})[team] || {})[role]);
       const inp = (key, label) => `<div class="form-field"><label>${label}</label><input type="number" min="0" value="${v[key]}" data-ts-team="${team}" data-ts-role="${role}" data-ts-key="${key}"></div>`;
-      return `
+      return `<div class="stats-group ts-generated" data-block="${role}|${team}">
         <label class="stats-group-label">${role === "coach" ? "🧑‍🏫 Estadísticas como entrenador" : "🎮 Estadísticas como jugador"} · ${escapeHtml(m ? m.label : team)}</label>
         <div class="form-row2">${inp("matches", role === "coach" ? "Partidos entrenados" : "Partidos jugados")}${inp("maps", role === "coach" ? "Mapas entrenados" : "Mapas jugados")}</div>
         <div class="form-row2">${inp("wins", "Victorias")}${inp("losses", "Derrotas")}</div>
-        ${allowDraws ? inp("draws", "Empates") : ""}`;
+        ${allowDraws ? inp("draws", "Empates") : ""}</div>`;
     }).join("");
+    const tmp = document.createElement("div");
+    tmp.innerHTML = generatedHtml;
+
+    // Qué etapas (rol + equipo) hay y desde cuándo: solo se muestran los
+    // bloques de estadísticas de las etapas que existen, en orden cronológico
+    // (la más antigua arriba). Los ocultos conservan su valor al guardar.
+    const main = mainTeamId(gameId) || "";
+    const firstDate = new Map();
+    stintsEditorEl.querySelectorAll(".stint-row").forEach((row, i) => {
+      const role = normalizeRole(row.querySelector(".stint-role").value);
+      if (role === "founder") return;
+      const teamSel = row.querySelector(".stint-team");
+      const team = teamSel ? teamSel.value : "";
+      const k = role + "|" + (team === main ? "" : team);
+      const d = (row.querySelector(".stint-joined").value || "9999-12-31") + "_" + String(i).padStart(3, "0");
+      if (!firstDate.has(k) || d < firstDate.get(k)) firstDate.set(k, d);
+    });
+    const all = [document.getElementById("fPlayerGroup"), document.getElementById("fCoachGroup"), ...tmp.children];
+    all.sort((x, y) => (firstDate.get(x.dataset.block) || "~").localeCompare(firstDate.get(y.dataset.block) || "~"));
+    all.forEach((el) => {
+      el.style.display = firstDate.has(el.dataset.block) ? "" : "none";
+      groupsEl.appendChild(el);
+    });
   }
 
   // Lee las filas del editor y devuelve { stints } o { error }.
@@ -2743,13 +2796,38 @@
     "founder-ex": "EX-CREADOR"
   };
 
+  // Cómo se ve el desglose por etapas en la tarjeta: "row" (en fila) o
+  // "stack" (uno debajo de otro).
+  const P1_BREAKDOWN_LAYOUT = "row";
+  // Si el desglose en fila no cabe en el ancho de la tarjeta (p.ej. 3
+  // etapas en una tarjeta estrecha o en el móvil), pasa a "uno debajo de otro".
+  function fitP1Breakdowns(root){
+    (root || document).querySelectorAll(".p1-bd").forEach((bd) => {
+      const card = bd.closest(".p1-card");
+      if (!card || !card.offsetWidth) return; // pestaña oculta: se mide al mostrarla
+      bd.classList.remove("stack"); bd.classList.add("row");
+      const avail = card.clientWidth - 16;
+      if (bd.scrollWidth > avail) { bd.classList.remove("row"); bd.classList.add("stack"); }
+    });
+  }
+  window.addEventListener("resize", (() => { let t; return () => { clearTimeout(t); t = setTimeout(() => fitP1Breakdowns(), 150); }; })());
   function renderLevel1Card(p, gameId){
     const card = document.createElement("div");
     const category = cardCategory(p);
     card.className = "p1-card " + CATEGORY_CLASS_MAP[category];
     card.dataset.playerId = p.id;
 
-    const stats = lastStintStats(p);
+    const totalMatches = combinedStats(p).matches || 0;
+    const blocks = statBlocks(p);
+    const bdHtml = blocks.length > 1
+      ? `<div class="p1-bd ${P1_BREAKDOWN_LAYOUT}">${blocks.map((b) => {
+          const ico = b.team ? teamLogoChip(p.gameId, b.team) : `<span class="p1-bd-ico">${b.role === "coach" ? "🧑‍🏫" : "🎮"}</span>`;
+          const tm = b.team ? teamMeta(p.gameId, b.team) : null;
+          const tip = `${b.role === "coach" ? "Entrenador" : "Jugador"}${tm ? " · " + tm.label : ""}`;
+          const roleMark = (b.team && b.role === "coach") ? "🧑‍🏫 " : "";
+          return `<span class="p1-bd-item" title="${escapeHtml(tip)}">${ico}${roleMark}${statsFor(p, b.role, b.team).matches || 0}</span>`;
+        }).join("")}</div>`
+      : "";
 
     const photoHtml = p.photoDataUrl
       ? `<div class="p1-photo" style="background-image:url(${p.photoDataUrl})"></div>`
@@ -2765,7 +2843,8 @@
       <div class="p1-info">
         <div class="p1-nick">${escapeHtml(p.nickname)}</div>
         <div class="p1-stat-hover">
-          <div class="p1-stat-num">${stats.matches || 0}</div>
+          ${bdHtml}
+          <div class="p1-stat-num">${totalMatches}</div>
           <div class="p1-stat-label">Partidos</div>
         </div>
       </div>
@@ -2801,6 +2880,7 @@
     tabsEl.style.display = "";
     toolbarEl.style.display = "";
     sectionsEl.style.display = "";
+    requestAnimationFrame(() => fitP1Breakdowns());
   }
 
   // opts.fromPopState evita volver a tocar el historial cuando la
